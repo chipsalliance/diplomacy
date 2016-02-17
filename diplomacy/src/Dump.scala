@@ -5,6 +5,11 @@ import scala.collection.mutable
 object Dump {
   def apply[T](key:Any,value:T):T = ParameterDump.apply(key, value)
   def apply[T](knob:Knob[T]):Knob[T] = ParameterDump.apply(knob)
+  def apply[T](key_base:String,values:Seq[T]):Seq[T] = {
+    values.zipWithIndex.foreach{ case(value, i) => Dump(key_base + "__" + i, value) }
+    Dump(key_base + "__COUNT", values.size)
+    values
+  }
 }
 
 object ParameterDump {
