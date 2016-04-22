@@ -6,6 +6,10 @@ import scala.collection.mutable
 // Convention: leading _'s on names means private to the outside world
 // but accessible to anything in this file.
 
+class CDEMatchError() extends Exception {
+  override def fillInStackTrace() = this
+}
+
 class ParameterUndefinedException(field:Any, cause:Throwable=null)
   extends RuntimeException("Parameter " + field + " undefined.", cause)
 

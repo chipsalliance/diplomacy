@@ -23,6 +23,7 @@ class Config(
       try this.topDefinitions(pname, site, here)
       catch {
         case e: scala.MatchError => that(pname, site, here)
+        case e: CDEMatchError => that(pname, site, here)
       }
     }
   }
@@ -36,6 +37,7 @@ class Config(
     try this.knobValues(x)
     catch {
       case e: scala.MatchError => that(x)
+      case e: CDEMatchError => that(x)
     }
   }
 
