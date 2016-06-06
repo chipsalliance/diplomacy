@@ -152,6 +152,7 @@ abstract class World(
           try topDefs(pname, site, here)
           catch {
             case e:scala.MatchError => throw new ParameterUndefinedException(pname, e)
+            case e:CDEMatchError => throw new ParameterUndefinedException(pname, e)
           }
         ) match {
           case k:Knob[T @unchecked] => ExVar[T](_VarKnob[T](k.name))
