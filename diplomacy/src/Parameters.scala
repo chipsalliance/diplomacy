@@ -6,7 +6,7 @@ import scala.collection.mutable
 // Convention: leading _'s on names means private to the outside world
 // but accessible to anything in this file.
 
-class CDEMatchError(field: Any) extends Exception(field.toString) {
+class CDEMatchError() extends Exception {
   override def fillInStackTrace() = this
 }
 
