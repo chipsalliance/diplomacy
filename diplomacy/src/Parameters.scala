@@ -33,6 +33,7 @@ abstract class View {
   def sym[T](pname:Any, site:View):Ex[T]
 
   // query for a parameters value using the default site
+  def apply[T](knob:Knob[T]):T
   final def apply[T](pname:Any):T = apply[T](pname, deftSite)
   final def apply[T](field:Field[T]):T = apply[T](field.asInstanceOf[Any], deftSite)
 
@@ -103,6 +104,9 @@ abstract class World(
   abstract class _View extends View {
     val look: _Lookup
 
+    def apply[T](knob:Knob[T]):T = {
+      _eval(ExVar[T](_VarKnob[T](knob.name)))
+    }
     def apply[T](pname:Any, site:View):T = {
       _eval(look(pname, site).asInstanceOf[Ex[T]])
     }
