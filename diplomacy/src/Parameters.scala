@@ -6,8 +6,25 @@ import scala.collection.mutable
 // Convention: leading _'s on names means private to the outside world
 // but accessible to anything in this file.
 
-class CDEMatchError() extends Exception {
+/** Custom "MatchError" to improve performance of CDE
+  * Mirrors [[scala.MatchError]]
+  */
+final class CDEMatchError(obj: Any = null) extends Exception {
   override def fillInStackTrace() = this
+
+  // Borrowed from scala.MatchError
+  // lazy so that objString is only created upon calling getMessage
+  private lazy val objString = {
+    def ofClass = "of class " + obj.getClass.getName
+    if (obj == null) "null"
+    else try {
+      obj.toString + " (" + ofClass + ")"
+    } catch {
+      case _: Throwable => "an instance " + ofClass
+    }
+  }
+
+  override def getMessage = objString
 }
 
 class ParameterUndefinedException(field:Any, cause:Throwable=null)

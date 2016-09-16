@@ -1,9 +1,9 @@
 package cde
 
 class Config(
-  val topDefinitions: World.TopDefs = { (a,b,c) => {throw new scala.MatchError(a)}},
+  val topDefinitions: World.TopDefs = { (a,b,c) => throw new CDEMatchError(a) },
   val topConstraints: List[ViewSym=>Ex[Boolean]] = List( ex => ExLit[Boolean](true) ),
-  val knobValues: Any=>Any = { case x => {throw new scala.MatchError(x)}}
+  val knobValues: Any => Any = { case x => throw new CDEMatchError(x) }
 ) {
   import Implicits._
   type Constraint = ViewSym=>Ex[Boolean]
