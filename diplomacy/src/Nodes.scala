@@ -1,6 +1,6 @@
 // See LICENSE for license details.
 
-package uncore.tilelink2
+package diplomacy
 
 import Chisel._
 import scala.collection.mutable.ListBuffer
@@ -45,22 +45,22 @@ abstract class BaseNode
   def name = lazyModule.name + "." + getClass.getName.split('.').last
   def omitGraphML = outputs.isEmpty && inputs.isEmpty
 
-  protected[tilelink2] def outputs: Seq[BaseNode]
-  protected[tilelink2] def inputs:  Seq[BaseNode]
-  protected[tilelink2] def colour:  String
+  protected[diplomacy] def outputs: Seq[BaseNode]
+  protected[diplomacy] def inputs:  Seq[BaseNode]
+  protected[diplomacy] def colour:  String
 }
 
 trait InwardNode[DI, UI, BI <: Data] extends BaseNode
 {
-  protected[tilelink2] val numPI: Range.Inclusive
+  protected[diplomacy] val numPI: Range.Inclusive
   require (!numPI.isEmpty, s"No number of inputs would be acceptable to ${name}${lazyModule.line}")
   require (numPI.start >= 0, s"${name} accepts a negative number of inputs${lazyModule.line}")
 
   private val accPI = ListBuffer[(Int, OutwardNode[DI, UI, BI])]()
   private var iRealized = false
 
-  protected[tilelink2] def iPushed = accPI.size
-  protected[tilelink2] def iPush(index: Int, node: OutwardNode[DI, UI, BI])(implicit sourceInfo: SourceInfo) {
+  protected[diplomacy] def iPushed = accPI.size
+  protected[diplomacy] def iPush(index: Int, node: OutwardNode[DI, UI, BI])(implicit sourceInfo: SourceInfo) {
     val info = sourceLine(sourceInfo, " at ", "")
     val noIs = numPI.size == 1 && numPI.contains(0)
     require (!noIs, s"${name}${lazyModule.line} was incorrectly connected as a sink" + info)
@@ -69,23 +69,23 @@ trait InwardNode[DI, UI, BI <: Data] extends BaseNode
   }
 
   private def reqI() = require(numPI.contains(accPI.size), s"${name} has ${accPI.size} inputs, expected ${numPI}${lazyModule.line}")
-  protected[tilelink2] lazy val iPorts = { iRealized = true; reqI(); accPI.result() }
+  protected[diplomacy] lazy val iPorts = { iRealized = true; reqI(); accPI.result() }
 
-  protected[tilelink2] val iParams: Seq[UI]
-  protected[tilelink2] def iConnect: Vec[BI]
+  protected[diplomacy] val iParams: Seq[UI]
+  protected[diplomacy] def iConnect: Vec[BI]
 }
 
 trait OutwardNode[DO, UO, BO <: Data] extends BaseNode
 {
-  protected[tilelink2] val numPO: Range.Inclusive
+  protected[diplomacy] val numPO: Range.Inclusive
   require (!numPO.isEmpty, s"No number of outputs would be acceptable to ${name}${lazyModule.line}")
   require (numPO.start >= 0, s"${name} accepts a negative number of outputs${lazyModule.line}")
 
   private val accPO = ListBuffer[(Int, InwardNode [DO, UO, BO])]()
   private var oRealized = false
 
-  protected[tilelink2] def oPushed = accPO.size
-  protected[tilelink2] def oPush(index: Int, node: InwardNode [DO, UO, BO])(implicit sourceInfo: SourceInfo) {
+  protected[diplomacy] def oPushed = accPO.size
+  protected[diplomacy] def oPush(index: Int, node: InwardNode [DO, UO, BO])(implicit sourceInfo: SourceInfo) {
     val info = sourceLine(sourceInfo, " at ", "")
     val noOs = numPO.size == 1 && numPO.contains(0)
     require (!noOs, s"${name}${lazyModule.line} was incorrectly connected as a source" + info)
@@ -94,10 +94,10 @@ trait OutwardNode[DO, UO, BO <: Data] extends BaseNode
   }
 
   private def reqO() = require(numPO.contains(accPO.size), s"${name} has ${accPO.size} outputs, expected ${numPO}${lazyModule.line}")
-  protected[tilelink2] lazy val oPorts = { oRealized = true; reqO(); accPO.result() }
+  protected[diplomacy] lazy val oPorts = { oRealized = true; reqO(); accPO.result() }
 
-  protected[tilelink2] val oParams: Seq[DO]
-  protected[tilelink2] def oConnect: Vec[BO]
+  protected[diplomacy] val oParams: Seq[DO]
+  protected[diplomacy] def oConnect: Vec[BO]
 }
 
 class MixedNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
@@ -105,22 +105,22 @@ class MixedNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
   outer: OutwardNodeImp[DO, UO, EO, BO])(
   private val dFn: (Int, Seq[DI]) => Seq[DO],
   private val uFn: (Int, Seq[UO]) => Seq[UI],
-  protected[tilelink2] val numPO: Range.Inclusive,
-  protected[tilelink2] val numPI: Range.Inclusive)
+  protected[diplomacy] val numPO: Range.Inclusive,
+  protected[diplomacy] val numPI: Range.Inclusive)
   extends BaseNode with InwardNode[DI, UI, BI] with OutwardNode[DO, UO, BO]
 {
   // meta-data for printing the node graph
-  protected[tilelink2] def colour  = inner.colour
-  protected[tilelink2] def outputs = oPorts.map(_._2)
-  protected[tilelink2] def inputs  = iPorts.map(_._2)
+  protected[diplomacy] def colour  = inner.colour
+  protected[diplomacy] def outputs = oPorts.map(_._2)
+  protected[diplomacy] def inputs  = iPorts.map(_._2)
 
   private def reqE(o: Int, i: Int) = require(i == o, s"${name} has ${i} inputs and ${o} outputs; they must match${lazyModule.line}")
-  protected[tilelink2] lazy val oParams: Seq[DO] = {
+  protected[diplomacy] lazy val oParams: Seq[DO] = {
     val o = dFn(oPorts.size, iPorts.map { case (i, n) => n.oParams(i) })
     reqE(oPorts.size, o.size)
     o.map(outer.mixO(_, this))
   }
-  protected[tilelink2] lazy val iParams: Seq[UI] = {
+  protected[diplomacy] lazy val iParams: Seq[UI] = {
     val i = uFn(iPorts.size, oPorts.map { case (o, n) => n.iParams(o) })
     reqE(i.size, iPorts.size)
     i.map(inner.mixI(_, this))
