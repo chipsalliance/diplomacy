@@ -6,7 +6,7 @@ abstract class Ex[T] {
 
 case class IntEx (expr:Ex[Int]) {
   def === (x:IntEx):Ex[Boolean] = (ExEq[Int](expr,x.expr))
-  def !== (x:IntEx):Ex[Boolean] = (ExNeq[Int](expr,x.expr))
+  def =/= (x:IntEx):Ex[Boolean] = (ExNeq[Int](expr,x.expr))
   def +   (x:IntEx):Ex[Int] = ExAdd(expr,x.expr)
   def -   (x:IntEx):Ex[Int] = ExSub(expr,x.expr)
   def *   (x:IntEx):Ex[Int] = ExMul(expr,x.expr)
@@ -41,7 +41,7 @@ case class BoolEx (expr:Ex[Boolean]) {
   def ||  (x:BoolEx):Ex[Boolean] = ExOr(expr,x.expr)
   def ^   (x:BoolEx):Ex[Boolean] = ExXor(expr,x.expr)
   def === (x:BoolEx):Ex[Boolean] = ExEq[Boolean](expr,x.expr)
-  def !== (x:BoolEx):Ex[Boolean] = ExNeq[Boolean](expr,x.expr)
+  def =/= (x:BoolEx):Ex[Boolean] = ExNeq[Boolean](expr,x.expr)
 }
 
 object Implicits {
