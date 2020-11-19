@@ -1,7 +1,7 @@
 // import Mill dependency
 import mill._
-import mill.modules.Util
 import scalalib._
+import scalafmt._
 // support BSP
 import $ivy.`com.lihaoyi::mill-contrib-bsp:$MILL_VERSION`
 // input build.sc from each repositories.
@@ -109,12 +109,12 @@ object shells extends CommonModule with SbtModule {
 // Local Projects
 
 // ValName macros, give name to Nodes and LazyModule.
-object macros extends ScalaModule {
+object macros extends ScalaModule with ScalafmtModule {
   override def scalaVersion = sv
 }
 
 // Currently, it depends on all projects for fast development, after first step to give a standalone version, all these dependencies will be removed.
-object diplomacy extends CommonModule { m =>
+object diplomacy extends CommonModule with ScalafmtModule {
   override def moduleDeps = super.moduleDeps ++ Seq(macros)
 
   override def scalacPluginClasspath = super.scalacPluginClasspath() ++ Agg(
@@ -138,5 +138,3 @@ object diplomacy extends CommonModule { m =>
     def testFrameworks = Seq("org.scalatest.tools.Framework")
   }
 }
-
-

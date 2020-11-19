@@ -18,3 +18,10 @@ compile:
 
 clean:
 	git clean -fd
+
+reformat:
+	mill -i diplomacy.reformat
+	mill -i macros.reformat
+
+checkformat:
+	mill -i diplomacy.checkFormat && mill -i macros.checkFormat
