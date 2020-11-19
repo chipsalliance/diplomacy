@@ -176,8 +176,7 @@ import scala.language.implicitConversions
 package object diplomacy {
   case class ValName(name: String)
 
-  object ValName
-  {
+  object ValName {
     implicit def materialize(implicit x: ValNameImpl): ValName = ValName(x.name)
   }
 
@@ -191,7 +190,7 @@ package object diplomacy {
 
   implicit class DataToAugmentedData[T <: Data](private val x: T) extends AnyVal {
     def getElements: Seq[Element] = x match {
-      case e: Element => Seq(e)
+      case e: Element   => Seq(e)
       case a: Aggregate => a.getElements.flatMap(_.getElements)
     }
   }
