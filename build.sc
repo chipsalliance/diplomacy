@@ -106,9 +106,16 @@ object shells extends CommonModule with SbtModule {
   override def moduleDeps = super.moduleDeps ++ Seq(myrocketchip, blocks)
 }
 
+// Local Projects
+
+// ValName macros, give name to Nodes and LazyModule.
+object macros extends ScalaModule {
+  override def scalaVersion = sv
+}
+
 // Currently, it depends on all projects for fast development, after first step to give a standalone version, all these dependencies will be removed.
-object diplomacy extends CommonModule {
-  override def moduleDeps = super.moduleDeps ++ Seq(myrocketchip, inclusivecache, blocks, shells)
+object diplomacy extends CommonModule { m =>
+  override def moduleDeps = super.moduleDeps ++ Seq(macros)
 
   override def scalacPluginClasspath = super.scalacPluginClasspath() ++ Agg(
     mychisel3.plugin.jar()
@@ -131,3 +138,5 @@ object diplomacy extends CommonModule {
     def testFrameworks = Seq("org.scalatest.tools.Framework")
   }
 }
+
+
