@@ -7,7 +7,6 @@ import chisel3.Data
 import freechips.rocketchip.config.Parameters
 import scala.language.implicitConversions
 
-
 /** Diplomacy is a set of abstractions for describing directed, acyclic graphs
   * where parameters will be negotiated between nodes. These abstractions are
   * expressed in the form of abstract classes, traits, and type parameters, which
@@ -24,13 +23,12 @@ import scala.language.implicitConversions
   * or to specify concrete types for the type parameters. This allows for
   * creating and associating application-specific node, edge, parameter, and bundle types.
   *
-  *
   * =Concepts, metaphors, and mnemonics to help with understanding Diplomacy code=
   *
   * ==Parameter Types==
-  *  
+  *
   *  There are several types of parameters involved in diplomacy code.
-  *  
+  *
   *  - Upward-flowing/Downward-flowing Parameters: These parameter types flow along edges and can be considered as the
   *    pre-negotiated, unresolved parameters.
   *  - Edge Parameters: These parameters are the result of the diplomatic negotiation and that is resolved for each edge.
@@ -46,7 +44,7 @@ import scala.language.implicitConversions
   *    While they are derived from Edge parameters holding all metadata computed over an edge,
   *    Bundle parameters often contain only concrete information required to create the hardware type,
   *    such as [[freechips.rocketchip.tilelink.TLBundleParameters]] and [[freechips.rocketchip.amba.axi4.AXI4BundleParameters]]
-  *  
+  *
   * ==Inward/Outward vs. Upward/Downward==
   *
   * Diplomacy defines two dimensions: inward/outward and upward/downward.
@@ -55,13 +53,13 @@ import scala.language.implicitConversions
   * For a given node:
   * - Inward refers to edges that point into itself.
   * - Outward refers to edges that point out from itself.
-  *  
+  *
   * Therefore, a given edge is always described as inward to one node and as outward from another.
   *
   * Upward/downward refer to the direction of the overall directed acyclic graph.
   * Because each each edge is directed, we say that the directions flow from sources (nodes that only have outward edges)
   * downwards to sinks (nodes that only have inward edges), or from sinks upwards to sources.
-  * These terms are used in parameter negotiation, where parameters flow both 
+  * These terms are used in parameter negotiation, where parameters flow both
   * upwards and downwards on edges. Note that diplomacy avoids terms like "master/slave",
   * "producer/consumer", though these can be defined by the concrete implementations of diplomatic systems.
   * Such terms imply something about the transactional behavior of agents within a protocol,
@@ -75,7 +73,7 @@ import scala.language.implicitConversions
   * while downward refers to parameters that move in the downstream direction.
   *
   * ==Acronyms==
-  *  
+  *
   * Diplomacy has some commonly used acronyms described below:
   *   D[IO], U[IO], E[IO], B[IO] are the types of parameters which will be propagated.
   *   D: Downwards -- parameters passed in the same direction as the edge.
@@ -84,7 +82,6 @@ import scala.language.implicitConversions
   *   B: Bundle should extends from [[chisel3.Data]].
   *
   *  {{{
-  *
   *
   *         Upwards (a.k.a. towards Sources)          ↓
   *                                                   ↓
@@ -129,7 +126,7 @@ import scala.language.implicitConversions
   *                                                   ↓ Downwards (a.k.a. towards Sinks)
   *
   * }}}
-  * 
+  *
   * == Handles ==
   *
   * Two Diplomatic nodes can be bound together using the `:=` operator or one of
@@ -176,18 +173,17 @@ import scala.language.implicitConversions
   *   - Junction: the number of inward and outward edges must have a fixed ratio to one another
   *   - Ephemeral: a temporary placeholder used for connectivity operations
   */
-package object diplomacy
-{
+package object diplomacy {
   type SimpleNodeHandle[D, U, E, B <: Chisel.Data] = NodeHandle[D, U, E, B, D, U, E, B]
   type AnyMixedNode = MixedNode[_, _, _, _ <: Data, _, _, _, _ <: Data]
 
   def sourceLine(sourceInfo: SourceInfo, prefix: String = " (", suffix: String = ")") = sourceInfo match {
     case SourceLine(filename, line, col) => s"$prefix$filename:$line:$col$suffix"
-    case _ => ""
+    case _                               => ""
   }
 
   def bitIndexes(x: BigInt, tail: Seq[Int] = Nil): Seq[Int] = {
-    require (x >= 0)
+    require(x >= 0)
     if (x == 0) {
       tail.reverse
     } else {
@@ -236,7 +232,11 @@ package object diplomacy
 
   implicit def noCrossing(value: NoCrossing.type): ClockCrossingType = SynchronousCrossing(BufferParams.none)
 
-  type BundleBridgeInwardNode[T <: Data] = InwardNodeHandle[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
-  type BundleBridgeOutwardNode[T <: Data] = OutwardNodeHandle[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
-  type BundleBridgeNode[T <: Data] = NodeHandle[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T, BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
+  type BundleBridgeInwardNode[T <: Data] =
+    InwardNodeHandle[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
+  type BundleBridgeOutwardNode[T <: Data] =
+    OutwardNodeHandle[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
+  type BundleBridgeNode[T <: Data] = NodeHandle[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[
+    T
+  ], T, BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
 }

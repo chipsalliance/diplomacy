@@ -4,7 +4,7 @@ package freechips.rocketchip.diplomacy
 
 import chisel3._
 import chisel3.internal.sourceinfo.SourceInfo
-import chisel3.experimental.{DataMirror,IO}
+import chisel3.experimental.{DataMirror, IO}
 import chisel3.experimental.DataMirror.internal.chiselTypeClone
 import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.util.DataToAugmentedData
@@ -17,31 +17,32 @@ case object BundleBridgeParams {
 
 case class BundleBridgeEdgeParams[T <: Data](source: BundleBridgeParams[T], sink: BundleBridgeParams[T])
 
-class BundleBridgeImp[T <: Data]() extends SimpleNodeImp[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
-{
-  def edge(pd: BundleBridgeParams[T], pu: BundleBridgeParams[T], p: Parameters, sourceInfo: SourceInfo) = BundleBridgeEdgeParams(pd, pu)
+class BundleBridgeImp[T <: Data]()
+    extends SimpleNodeImp[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T] {
+  def edge(pd: BundleBridgeParams[T], pu: BundleBridgeParams[T], p: Parameters, sourceInfo: SourceInfo) =
+    BundleBridgeEdgeParams(pd, pu)
   def bundle(e: BundleBridgeEdgeParams[T]): T = {
     val sourceOpt = e.source.genOpt.map(_())
     val sinkOpt = e.sink.genOpt.map(_())
     (sourceOpt, sinkOpt) match {
-      case (None,    None)    =>
+      case (None, None) =>
         throw new Exception("BundleBridge needs source or sink to provide bundle generator function")
-      case (Some(a), None)    => a
-      case (None,    Some(b)) => b
+      case (Some(a), None) => a
+      case (None, Some(b)) => b
       case (Some(a), Some(b)) => {
-        require(DataMirror.checkTypeEquivalence(a, b),
-          s"BundleBridge requires doubly-specified source and sink generators to have equivalent Chisel Data types, but got \n$a\n vs\n$b")
+        require(
+          DataMirror.checkTypeEquivalence(a, b),
+          s"BundleBridge requires doubly-specified source and sink generators to have equivalent Chisel Data types, but got \n$a\n vs\n$b"
+        )
         a
       }
     }
   }
-  def render(e: BundleBridgeEdgeParams[T]) = RenderedEdge(colour = "#cccc00" /* yellow */)
+  def render(e: BundleBridgeEdgeParams[T]) = RenderedEdge(colour = "#cccc00" /* yellow */ )
 }
 
-case class BundleBridgeSink[T <: Data](genOpt: Option[() => T] = None)
-                                      (implicit valName: ValName)
-  extends SinkNode(new BundleBridgeImp[T])(Seq(BundleBridgeParams(genOpt)))
-{
+case class BundleBridgeSink[T <: Data](genOpt: Option[() => T] = None)(implicit valName: ValName)
+    extends SinkNode(new BundleBridgeImp[T])(Seq(BundleBridgeParams(genOpt))) {
   def bundle: T = in(0)._1
 
   private def inferOutput = bundle.getElements.forall { elt =>
@@ -63,8 +64,8 @@ object BundleBridgeSink {
   }
 }
 
-case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implicit valName: ValName) extends SourceNode(new BundleBridgeImp[T])(Seq(BundleBridgeParams(genOpt)))
-{
+case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implicit valName: ValName)
+    extends SourceNode(new BundleBridgeImp[T])(Seq(BundleBridgeParams(genOpt))) {
   def bundle: T = out(0)._1
 
   private def inferInput = bundle.getElements.forall { elt =>
@@ -81,7 +82,7 @@ case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implici
 
   private var doneSink = false
   def makeSink()(implicit p: Parameters) = {
-    require (!doneSink, "Can only call makeSink() once")
+    require(!doneSink, "Can only call makeSink() once")
     doneSink = true
     val sink = BundleBridgeSink[T]()
     sink := this
@@ -98,55 +99,70 @@ object BundleBridgeSource {
   }
 }
 
-case class BundleBridgeIdentityNode[T <: Data]()(implicit valName: ValName) extends IdentityNode(new BundleBridgeImp[T])()
-case class BundleBridgeEphemeralNode[T <: Data]()(implicit valName: ValName) extends EphemeralNode(new BundleBridgeImp[T])()
+case class BundleBridgeIdentityNode[T <: Data]()(implicit valName: ValName)
+    extends IdentityNode(new BundleBridgeImp[T])()
+case class BundleBridgeEphemeralNode[T <: Data]()(implicit valName: ValName)
+    extends EphemeralNode(new BundleBridgeImp[T])()
 
 object BundleBridgeNameNode {
   def apply[T <: Data](name: String) = BundleBridgeIdentityNode[T]()(ValName(name))
 }
 
-case class BundleBridgeNexusNode[T <: Data](default: Option[() => T] = None,
-                                            inputRequiresOutput: Boolean = false) // when false, connecting a source does not mandate connecting a sink
-                                           (implicit valName: ValName)
-  extends NexusNode(new BundleBridgeImp[T])(
-    dFn = seq => seq.headOption.getOrElse(BundleBridgeParams(default)),
-    uFn = seq => seq.headOption.getOrElse(BundleBridgeParams(None)),
-    inputRequiresOutput = inputRequiresOutput,
-    outputRequiresInput = !default.isDefined)
+case class BundleBridgeNexusNode[T <: Data](
+  default:             Option[() => T] = None,
+  inputRequiresOutput: Boolean = false) // when false, connecting a source does not mandate connecting a sink
+(implicit valName:     ValName)
+    extends NexusNode(new BundleBridgeImp[T])(
+      dFn = seq => seq.headOption.getOrElse(BundleBridgeParams(default)),
+      uFn = seq => seq.headOption.getOrElse(BundleBridgeParams(None)),
+      inputRequiresOutput = inputRequiresOutput,
+      outputRequiresInput = !default.isDefined
+    )
 
 class BundleBridgeNexus[T <: Data](
-  inputFn: Seq[T] => T,
-  outputFn: (T, Int) => Seq[T],
-  default: Option[() => T] = None,
-  inputRequiresOutput: Boolean = false,
+  inputFn:                      Seq[T] => T,
+  outputFn:                     (T, Int) => Seq[T],
+  default:                      Option[() => T] = None,
+  inputRequiresOutput:          Boolean = false,
   override val shouldBeInlined: Boolean = true
-) (implicit p: Parameters) extends LazyModule
-{
+)(
+  implicit p: Parameters)
+    extends LazyModule {
   val node = BundleBridgeNexusNode[T](default, inputRequiresOutput)
 
   lazy val module = new LazyModuleImp(this) {
     val defaultWireOpt = default.map(_())
     val inputs: Seq[T] = node.in.map(_._1)
-    inputs.foreach { i => require(DataMirror.checkTypeEquivalence(i, inputs.head),
-      s"${node.context} requires all inputs have equivalent Chisel Data types, but got\n$i\nvs\n${inputs.head}")
+    inputs.foreach { i =>
+      require(
+        DataMirror.checkTypeEquivalence(i, inputs.head),
+        s"${node.context} requires all inputs have equivalent Chisel Data types, but got\n$i\nvs\n${inputs.head}"
+      )
     }
-    inputs.flatMap(_.getElements).foreach { elt => DataMirror.directionOf(elt) match {
-      case ActualDirection.Output => ()
-      case ActualDirection.Unspecified => ()
-      case _ => require(false, s"${node.context} can only be used with Output-directed Bundles")
-    } }
+    inputs.flatMap(_.getElements).foreach { elt =>
+      DataMirror.directionOf(elt) match {
+        case ActualDirection.Output      => ()
+        case ActualDirection.Unspecified => ()
+        case _                           => require(false, s"${node.context} can only be used with Output-directed Bundles")
+      }
+    }
 
     val outputs: Seq[T] = if (node.out.size > 0) {
       val broadcast: T = if (inputs.size >= 1) inputFn(inputs) else defaultWireOpt.get
       outputFn(broadcast, node.out.size)
     } else { Nil }
 
-    node.out.map(_._1).foreach { o => require(DataMirror.checkTypeEquivalence(o, outputs.head),
-      s"${node.context} requires all outputs have equivalent Chisel Data types, but got\n$o\nvs\n${outputs.head}")
+    node.out.map(_._1).foreach { o =>
+      require(
+        DataMirror.checkTypeEquivalence(o, outputs.head),
+        s"${node.context} requires all outputs have equivalent Chisel Data types, but got\n$o\nvs\n${outputs.head}"
+      )
     }
 
-    require(outputs.size == node.out.size,
-      s"${node.context} outputFn must generate one output wire per edgeOut, but got ${outputs.size} vs ${node.out.size}")
+    require(
+      outputs.size == node.out.size,
+      s"${node.context} outputFn must generate one output wire per edgeOut, but got ${outputs.size} vs ${node.out.size}"
+    )
 
     node.out.zip(outputs).foreach { case ((out, _), bcast) => out := bcast }
   }
@@ -165,7 +181,7 @@ object BundleBridgeNexus {
   }
 
   def orReduction[T <: Data](registered: Boolean)(seq: Seq[T]): T = {
-    val x = seq.reduce((a,b) => (a.asUInt | b.asUInt).asTypeOf(seq.head))
+    val x = seq.reduce((a, b) => (a.asUInt | b.asUInt).asTypeOf(seq.head))
     if (registered) safeRegNext(x) else x
   }
 
@@ -174,12 +190,14 @@ object BundleBridgeNexus {
   }
 
   def apply[T <: Data](
-    inputFn: Seq[T] => T = orReduction[T](false) _,
-    outputFn: (T, Int) => Seq[T] = fillN[T](false) _,
-    default: Option[() => T] = None,
+    inputFn:             Seq[T] => T = orReduction[T](false) _,
+    outputFn:            (T, Int) => Seq[T] = fillN[T](false) _,
+    default:             Option[() => T] = None,
     inputRequiresOutput: Boolean = false,
-    shouldBeInlined: Boolean = true
-  )(implicit p: Parameters): BundleBridgeNexusNode[T] = {
+    shouldBeInlined:     Boolean = true
+  )(
+    implicit p: Parameters
+  ): BundleBridgeNexusNode[T] = {
     val nexus = LazyModule(new BundleBridgeNexus[T](inputFn, outputFn, default, inputRequiresOutput, shouldBeInlined))
     nexus.node
   }
@@ -187,18 +205,23 @@ object BundleBridgeNexus {
 
 object BundleBroadcast {
   def apply[T <: Data](
-    name: Option[String] = None,
-    registered: Boolean = false,
-    default: Option[() => T] = None,
+    name:                Option[String] = None,
+    registered:          Boolean = false,
+    default:             Option[() => T] = None,
     inputRequiresOutput: Boolean = false, // when false, connecting a source does not mandate connecting a sink
-    shouldBeInlined: Boolean = true
-  )(implicit p: Parameters): BundleBridgeNexusNode[T] = {
-    val broadcast = LazyModule(new BundleBridgeNexus[T](
-      inputFn = BundleBridgeNexus.requireOne[T](registered) _,
-      outputFn = BundleBridgeNexus.fillN[T](registered) _,
-      default = default,
-      inputRequiresOutput = inputRequiresOutput,
-      shouldBeInlined = shouldBeInlined))
+    shouldBeInlined:     Boolean = true
+  )(
+    implicit p: Parameters
+  ): BundleBridgeNexusNode[T] = {
+    val broadcast = LazyModule(
+      new BundleBridgeNexus[T](
+        inputFn = BundleBridgeNexus.requireOne[T](registered) _,
+        outputFn = BundleBridgeNexus.fillN[T](registered) _,
+        default = default,
+        inputRequiresOutput = inputRequiresOutput,
+        shouldBeInlined = shouldBeInlined
+      )
+    )
     name.foreach(broadcast.suggestName(_))
     broadcast.node
   }

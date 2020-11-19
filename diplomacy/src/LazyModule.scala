@@ -4,7 +4,7 @@ package freechips.rocketchip.diplomacy
 
 import Chisel.{defaultCompileOptions => _, _}
 import chisel3.internal.sourceinfo.{SourceInfo, UnlocatableSourceInfo}
-import chisel3.{MultiIOModule, RawModule, Reset, withClockAndReset}
+import chisel3.{withClockAndReset, MultiIOModule, RawModule, Reset}
 import chisel3.experimental.ChiselAnnotation
 import firrtl.passes.InlineAnnotation
 import freechips.rocketchip.config.Parameters
@@ -26,15 +26,19 @@ import scala.util.matching._
   *     - [[LazyModuleImpLike]] generates [[chisel3.Module]]s.
   */
 abstract class LazyModule()(implicit val p: Parameters) {
+
   /** Contains sub-[[LazyModule]]s; can be accessed by [[getChildren]]. */
   protected[diplomacy] var children: List[LazyModule] = List[LazyModule]()
+
   /** Contains the [[BaseNode]]s instantiated within this instance. */
   protected[diplomacy] var nodes: List[BaseNode] = List[BaseNode]()
+
   /** Stores [[SourceInfo]] of this instance.
     *
     * The companion object factory method will set this to the correct value.
     */
   protected[diplomacy] var info: SourceInfo = UnlocatableSourceInfo
+
   /** Parent of this LazyModule. If this instance is at the top of the hierarchy, this will be [[None]]. */
   protected[diplomacy] val parent: Option[LazyModule] = LazyModule.scope
 
@@ -43,7 +47,7 @@ abstract class LazyModule()(implicit val p: Parameters) {
 
   /** Sequence of ancestor LazyModules, starting with [[parent]]. */
   def parents: Seq[LazyModule] = parent match {
-    case None => Nil
+    case None    => Nil
     case Some(x) => x +: x.parents
   }
 
@@ -70,9 +74,11 @@ abstract class LazyModule()(implicit val p: Parameters) {
 
   /** Scala class name of this instance. */
   lazy val className: String = findClassName(getClass)
-  /** Suggested instance name. Defaults to [[className]].*/
+
+  /** Suggested instance name. Defaults to [[className]]. */
   lazy val suggestedName: String = suggestedNameVar.getOrElse(className)
-  /** Suggested module name. Defaults to [[className]].*/
+
+  /** Suggested module name. Defaults to [[className]]. */
   lazy val desiredName: String = className // + hashcode?
 
   /** Return instance name. */
@@ -83,8 +89,10 @@ abstract class LazyModule()(implicit val p: Parameters) {
   // Accessing these names can only be done after circuit elaboration!
   /** Module name in verilog, used in GraphML. */
   lazy val moduleName: String = module.name
+
   /** Hierarchical path of this instance, used in GraphML. */
   lazy val pathName: String = module.pathName
+
   /** Instance name in verilog. Should only be accessed after circuit elaboration. */
   lazy val instanceName: String = pathName.split('.').last
 
@@ -143,7 +151,10 @@ abstract class LazyModule()(implicit val p: Parameters) {
     */
   private def nodesGraphML(buf: StringBuilder, pad: String): Unit = {
     buf ++= s"""$pad<node id=\"$index\">\n"""
-    buf ++= s"""$pad  <data key=\"n\"><y:ShapeNode><y:NodeLabel modelName=\"sides\" modelPosition=\"w\" rotationAngle=\"270.0\">$instanceName</y:NodeLabel><y:BorderStyle type=\"${if (shouldBeInlined) "dotted" else "line"}\"/></y:ShapeNode></data>\n"""
+    buf ++= s"""$pad  <data key=\"n\"><y:ShapeNode><y:NodeLabel modelName=\"sides\" modelPosition=\"w\" rotationAngle=\"270.0\">$instanceName</y:NodeLabel><y:BorderStyle type=\"${if (
+      shouldBeInlined
+    ) "dotted"
+    else "line"}\"/></y:ShapeNode></data>\n"""
     buf ++= s"""$pad  <data key=\"d\">$moduleName ($pathName)</data>\n"""
     buf ++= s"""$pad  <graph id=\"$index::\" edgedefault=\"directed\">\n"""
     nodes.filter(!_.omitGraphML).foreach { n =>
@@ -163,27 +174,28 @@ abstract class LazyModule()(implicit val p: Parameters) {
     * @param pad Padding as prefix for indentation purposes.
     */
   private def edgesGraphML(buf: StringBuilder, pad: String): Unit = {
-    nodes.filter(!_.omitGraphML) foreach { n =>
-      n.outputs.filter(!_._1.omitGraphML).foreach { case (o, edge) =>
-        val RenderedEdge(colour, label, flipped) = edge
-        buf ++= pad
-        buf ++= "<edge"
-        if (flipped) {
-          buf ++= s""" target=\"$index::${n.index}\""""
-          buf ++= s""" source=\"${o.lazyModule.index}::${o.index}\">"""
-        } else {
-          buf ++= s""" source=\"$index::${n.index}\""""
-          buf ++= s""" target=\"${o.lazyModule.index}::${o.index}\">"""
-        }
-        buf ++= s"""<data key=\"e\"><y:PolyLineEdge>"""
-        if (flipped) {
-          buf ++= s"""<y:Arrows source=\"standard\" target=\"none\"/>"""
-        } else {
-          buf ++= s"""<y:Arrows source=\"none\" target=\"standard\"/>"""
-        }
-        buf ++= s"""<y:LineStyle color=\"$colour\" type=\"line\" width=\"1.0\"/>"""
-        buf ++= s"""<y:EdgeLabel modelName=\"centered\" rotationAngle=\"270.0\">$label</y:EdgeLabel>"""
-        buf ++= s"""</y:PolyLineEdge></data></edge>\n"""
+    nodes.filter(!_.omitGraphML).foreach { n =>
+      n.outputs.filter(!_._1.omitGraphML).foreach {
+        case (o, edge) =>
+          val RenderedEdge(colour, label, flipped) = edge
+          buf ++= pad
+          buf ++= "<edge"
+          if (flipped) {
+            buf ++= s""" target=\"$index::${n.index}\""""
+            buf ++= s""" source=\"${o.lazyModule.index}::${o.index}\">"""
+          } else {
+            buf ++= s""" source=\"$index::${n.index}\""""
+            buf ++= s""" target=\"${o.lazyModule.index}::${o.index}\">"""
+          }
+          buf ++= s"""<data key=\"e\"><y:PolyLineEdge>"""
+          if (flipped) {
+            buf ++= s"""<y:Arrows source=\"standard\" target=\"none\"/>"""
+          } else {
+            buf ++= s"""<y:Arrows source=\"none\" target=\"standard\"/>"""
+          }
+          buf ++= s"""<y:LineStyle color=\"$colour\" type=\"line\" width=\"1.0\"/>"""
+          buf ++= s"""<y:EdgeLabel modelName=\"centered\" rotationAngle=\"270.0\">$label</y:EdgeLabel>"""
+          buf ++= s"""</y:PolyLineEdge></data></edge>\n"""
       }
     }
     children.filter(!_.omitGraphML).foreach { c => c.edgesGraphML(buf, pad) }
@@ -215,11 +227,13 @@ abstract class LazyModule()(implicit val p: Parameters) {
 }
 
 object LazyModule {
+
   /** Current [[LazyModule]] scope. The scope is a stack of [[LazyModule]]/[[LazyScope]]s.
     *
     * Each call to [[LazyScope.apply]] or [[LazyModule.apply]] will push that item onto the current scope.
     */
   protected[diplomacy] var scope: Option[LazyModule] = None
+
   /** Global index of [[LazyModule]]. Note that there is no zeroth module. */
   private var index = 0
 
@@ -235,7 +249,10 @@ object LazyModule {
     */
   def apply[T <: LazyModule](bc: T)(implicit valName: ValName, sourceInfo: SourceInfo): T = {
     // Make sure the user puts [[LazyModule]] around modules in the correct order.
-    require(scope.isDefined, s"LazyModule() applied to ${bc.name} twice ${sourceLine(sourceInfo)}. Ensure that descendant LazyModules are instantiated with the LazyModule() wrapper and that you did not call LazyModule() twice.")
+    require(
+      scope.isDefined,
+      s"LazyModule() applied to ${bc.name} twice ${sourceLine(sourceInfo)}. Ensure that descendant LazyModules are instantiated with the LazyModule() wrapper and that you did not call LazyModule() twice."
+    )
     require(scope.get eq bc, s"LazyModule() applied to ${bc.name} before ${scope.get.name} ${sourceLine(sourceInfo)}")
     // Pop from the [[LazyModule.scope]] stack.
     scope = bc.parent
@@ -250,17 +267,23 @@ object LazyModule {
   * This is the actual Chisel module that is lazily-evaluated in the second phase of Diplomacy.
   */
 sealed trait LazyModuleImpLike extends RawModule {
+
   /** [[LazyModule]] that contains this instance. */
   val wrapper: LazyModule
+
   /** IOs that will be automatically "punched" for this instance. */
   val auto: AutoBundle
+
   /** The metadata that describes the [[HalfEdge]]s which generated [[auto]]. */
   protected[diplomacy] val dangles: Seq[Dangle]
 
   // [[wrapper.module]] had better not be accessed while LazyModules are still being built!
-  require(LazyModule.scope.isEmpty, s"${wrapper.name}.module was constructed before LazyModule() was run on ${LazyModule.scope.get.name}")
+  require(
+    LazyModule.scope.isEmpty,
+    s"${wrapper.name}.module was constructed before LazyModule() was run on ${LazyModule.scope.get.name}"
+  )
 
-  /** Set module name. Defaults to the containing LazyModule's desiredName.*/
+  /** Set module name. Defaults to the containing LazyModule's desiredName. */
   override def desiredName: String = wrapper.desiredName
 
   suggestName(wrapper.suggestedName)
@@ -269,7 +292,8 @@ sealed trait LazyModuleImpLike extends RawModule {
   implicit val p: Parameters = wrapper.p
 
   /** instantiate this [[LazyModule]],
-    * return [[AutoBundle]] and a unconnected [[Dangle]]s from this module and submodules. */
+    * return [[AutoBundle]] and a unconnected [[Dangle]]s from this module and submodules.
+    */
   protected[diplomacy] def instantiate(): (AutoBundle, List[Dangle]) = {
     // 1. It will recursively append [[wrapper.children]] into [[chisel3.internal.Builder]],
     // 2. return [[Dangle]]s from each module.
@@ -289,32 +313,34 @@ sealed trait LazyModuleImpLike extends RawModule {
     // For each [[source]] set of [[Dangle]]s of size 2, ensure that these
     // can be connected as a source-sink pair (have opposite flipped value).
     // Make the connection and mark them as [[done]].
-    val done = Set() ++ pairing.values.filter(_.size == 2).map { case Seq(a, b) =>
-      require(a.flipped != b.flipped)
-      // @todo <> in chisel3 makes directionless connection.
-      if (a.flipped) {
-        a.data <> b.data
-      } else {
-        b.data <> a.data
-      }
-      a.source
+    val done = Set() ++ pairing.values.filter(_.size == 2).map {
+      case Seq(a, b) =>
+        require(a.flipped != b.flipped)
+        // @todo <> in chisel3 makes directionless connection.
+        if (a.flipped) {
+          a.data <> b.data
+        } else {
+          b.data <> a.data
+        }
+        a.source
     }
     // Find all [[Dangle]]s which are still not connected. These will end up as [[AutoBundle]] [[IO]] ports on the module.
     val forward = allDangles.filter(d => !done(d.source))
     // Generate [[AutoBundle]] IO from [[forward]].
     val auto = IO(new AutoBundle(forward.map { d => (d.name, d.data, d.flipped) }: _*))
     // Pass the [[Dangle]]s which remained and were used to generate the [[AutoBundle]] I/O ports up to the [[parent]] [[LazyModule]]
-    val dangles = (forward zip auto.elements) map { case (d, (_, io)) =>
-      if (d.flipped) {
-        d.data <> io
-      } else {
-        io <> d.data
-      }
-      d.copy(data = io, name = wrapper.suggestedName + "_" + d.name)
+    val dangles = (forward.zip(auto.elements)).map {
+      case (d, (_, io)) =>
+        if (d.flipped) {
+          d.data <> io
+        } else {
+          io <> d.data
+        }
+        d.copy(data = io, name = wrapper.suggestedName + "_" + d.name)
     }
     // Push all [[LazyModule.inModuleBody]] to [[chisel3.internal.Builder]].
     wrapper.inModuleBody.reverse.foreach {
-      _ ()
+      _()
     }
 
     if (wrapper.shouldBeInlined) {
@@ -333,6 +359,7 @@ sealed trait LazyModuleImpLike extends RawModule {
   * @param wrapper the [[LazyModule]] from which the `.module` call is being made.
   */
 class LazyModuleImp(val wrapper: LazyModule) extends MultiIOModule with LazyModuleImpLike {
+
   /** Instantiate hardware of this `Module`. */
   val (auto, dangles) = instantiate()
 }
@@ -348,6 +375,7 @@ class LazyRawModuleImp(val wrapper: LazyModule) extends RawModule with LazyModul
   // Otherwise, anonymous children ([[Monitor]]s for example) will not have their [[clock]] and/or [[reset]] driven properly.
   /** drive clock explicitly. */
   val childClock: Clock = Wire(Clock())
+
   /** drive reset explicitly. */
   val childReset: Reset = Wire(Reset())
   // the default is that these are disabled
@@ -382,7 +410,10 @@ trait LazyScope {
     val out = body
     // Check that the `scope` after evaluating `body` is the same as when we started.
     require(LazyModule.scope.isDefined, s"LazyScope $name tried to exit, but scope was empty!")
-    require(LazyModule.scope.get eq this, s"LazyScope $name exited before LazyModule ${LazyModule.scope.get.name} was closed")
+    require(
+      LazyModule.scope.get eq this,
+      s"LazyScope $name exited before LazyModule ${LazyModule.scope.get.name} was closed"
+    )
     // [[LazyModule.scope]] stack pop.
     LazyModule.scope = saved
     out
@@ -394,6 +425,7 @@ trait LazyScope {
   * It will instantiate a [[SimpleLazyModule]] to manage evaluation of `body` and evaluate `body` code snippets in this scope.
   */
 object LazyScope {
+
   /** Create a [[LazyScope]] with an implicit instance name.
     *
     * @param body    code executed within the generated [[SimpleLazyModule]].
@@ -423,12 +455,13 @@ object LazyScope {
     * @param p [[Parameters]] propagated to [[SimpleLazyModule]].
     */
   def apply[T](
-    name: String,
+    name:              String,
     desiredModuleName: String,
-    overrideInlining: Option[Boolean] = None)
-    (body: => T)
-    (implicit p: Parameters): T =
-  {
+    overrideInlining:  Option[Boolean] = None
+  )(body:              => T
+  )(
+    implicit p: Parameters
+  ): T = {
     val scope = LazyModule(new SimpleLazyModule with LazyScope {
       override lazy val desiredName = desiredModuleName
       override def shouldBeInlined = overrideInlining.getOrElse(super.shouldBeInlined)
@@ -461,7 +494,7 @@ case class HalfEdge(serial: Int, index: Int) extends Ordered[HalfEdge] {
 
   import scala.math.Ordered.orderingToOrdered
 
-  def compare(that: HalfEdge): Int = HalfEdge.unapply(this) compare HalfEdge.unapply(that)
+  def compare(that: HalfEdge): Int = HalfEdge.unapply(this).compare(HalfEdge.unapply(that))
 }
 
 /** [[Dangle]] captures the `IO` information of a [[LazyModule]] and which two [[BaseNode]]s the [[Edges]]/[[Bundle]] connects.
@@ -487,12 +520,19 @@ case class Dangle(source: HalfEdge, sink: HalfEdge, flipped: Boolean, name: Stri
   */
 final class AutoBundle(elts: (String, Data, Boolean)*) extends Record {
   // We need to preserve the order of elts, despite grouping by name to disambiguate things.
-  val elements: ListMap[String, Data] = ListMap() ++ elts.zipWithIndex.map(makeElements).groupBy(_._1).values.flatMap {
-    // If name is unique, it will return a Seq[index -> (name -> data)].
-    case Seq((key, element, i)) => Seq(i -> (key -> element))
-    // If name is not unique, name will append with j, and return `Seq[index -> (s"${name}_${j}" -> data)]`.
-    case seq => seq.zipWithIndex.map { case ((key, element, i), j) => i -> (key + "_" + j -> element) }
-  }.toList.sortBy(_._1).map(_._2)
+  val elements: ListMap[String, Data] = ListMap() ++ elts.zipWithIndex
+    .map(makeElements)
+    .groupBy(_._1)
+    .values
+    .flatMap {
+      // If name is unique, it will return a Seq[index -> (name -> data)].
+      case Seq((key, element, i)) => Seq(i -> (key -> element))
+      // If name is not unique, name will append with j, and return `Seq[index -> (s"${name}_${j}" -> data)]`.
+      case seq => seq.zipWithIndex.map { case ((key, element, i), j) => i -> (key + "_" + j -> element) }
+    }
+    .toList
+    .sortBy(_._1)
+    .map(_._2)
   require(elements.size == elts.size)
 
   // Trim final "(_[0-9]+)*$" in the name, flip data with flipped.
