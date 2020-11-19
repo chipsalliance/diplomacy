@@ -1,0 +1,20 @@
+on: [pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - name: Download Mill
+        run: |
+          mkdir -p "./bin"
+          sudo curl -L https://github.com/lihaoyi/mill/releases/download/0.8.0/0.8.0 > "./bin/mill" && sudo chmod +x "./bin/mill"
+      - name: Add Path
+        run: echo "./bin/" >> $GITHUB_PATH
+      - name: Check diplomacy Format
+        run: mill diplomacy.checkFormat 
+      - name: Check macros Format
+        run: mill macros.checkFormat
+      - name: Compile Project
+        run: mill diplomacy.compile
