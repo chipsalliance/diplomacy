@@ -111,6 +111,9 @@ object shells extends CommonModule with SbtModule {
 // ValName macros, give name to Nodes and LazyModule.
 object macros extends ScalaModule with ScalafmtModule {
   override def scalaVersion = sv
+  override def ivyDeps = Agg(
+    ivy"${scalaOrganization()}:scala-reflect:${scalaVersion()}"
+  )
 }
 
 // Currently, it depends on all projects for fast development, after first step to give a standalone version, all these dependencies will be removed.
