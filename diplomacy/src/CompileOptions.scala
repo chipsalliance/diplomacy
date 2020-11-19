@@ -1,6 +1,6 @@
 // See LICENSE.SiFive for license details.
 
-package freechips.rocketchip.util
+package diplomacy
 
 import chisel3.ExplicitCompileOptions.NotStrict
 

@@ -1,12 +1,11 @@
 // See LICENSE.SiFive for license details.
 
-package freechips.rocketchip.diplomacy
+package diplomacy
 
 import Chisel._
 import chisel3.experimental.IO
 import chisel3.internal.sourceinfo.SourceInfo
-import freechips.rocketchip.config.{Field, Parameters}
-import freechips.rocketchip.util.HeterogeneousBag
+import diplomacy.config.{Field, Parameters}
 
 import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
@@ -1943,97 +1942,5 @@ class SinkNode[D, U, EO, EI, B <: Data](imp: NodeImp[D, U, EO, EI, B])(pi: Seq[U
     ios.suggestName(valName.name)
     bundles.zip(ios).foreach { case (bundle, io) => io <> bundle }
     ios
-  }
-}
-
-/** A node intended to replace a portion of the diplomatic graph in order to test functionality of a copy (cloned) [[LazyModule]]
-  *
-  * @param node  the node to copy
-  * @param clone the copy of the LazyModule containing [[node]]
-  */
-class MixedTestNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data] protected[diplomacy] (
-  node:  NodeHandle[DI, UI, EI, BI, DO, UO, EO, BO],
-  clone: CloneLazyModule
-)(
-  implicit valName: ValName)
-    extends MixedNode(node.inner, node.outer) {
-  // The devices connected to this test node must recreate these parameters:
-  def iParams: Seq[DI] = node.inward.diParams
-  def oParams: Seq[UO] = node.outward.uoParams
-
-  override def description = "test"
-  protected[diplomacy] def resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int) = {
-    def resolveStarInfo: String =
-      s"""$context
-         |$bindingInfo
-         |number of known := bindings to inward nodes: $iKnown
-         |number of known := bindings to outward nodes: $oKnown
-         |number of binding queries from inward nodes: $iStars
-         |number of binding queries from outward nodes: $oStars
-         |downstream inward parameters: ${node.inward.diParams}
-         |upstream inward parameters: ${node.inward.uiParams}
-         |upstream outward parameters: ${node.outward.uoParams}
-         |downstream outward parameters: ${node.outward.doParams}
-         |node.inward.uiParams.size
-         |""".stripMargin
-
-    require(
-      oStars <= 1,
-      s"""Diplomacy has detected a problem with your graph:
-         |The following node appears right of a :=* $oStars times; at most once is allowed.
-         |$resolveStarInfo
-         |""".stripMargin
-    )
-    require(
-      iStars <= 1,
-      s"""Diplomacy has detected a problem with your graph:
-         |The following node appears left of a :*= $iStars times; at most once is allowed.
-         |$resolveStarInfo
-         |""".stripMargin
-    )
-    require(
-      node.inward.uiParams.size == iKnown || iStars == 1,
-      s"""Diplomacy has detected a problem with your graph:
-         |The following node has only $iKnown inputs, which should be ${node.inward.uiParams.size}, or connect this node on the left-hand side of :*=
-         |$resolveStarInfo
-         |""".stripMargin
-    )
-    require(
-      node.outward.doParams.size == oKnown || oStars == 1,
-      s"""Diplomacy has detected a problem with your graph:
-         |The following node has only $oKnown outputs, which should be ${node.outward.doParams.size}, or connect this node on the right-hand side of :=*
-         |$resolveStarInfo
-         |""".stripMargin
-    )
-    (node.inward.uiParams.size - iKnown, node.outward.doParams.size - oKnown)
-  }
-
-  protected[diplomacy] def mapParamsU(n: Int, p: Seq[UO]): Seq[UI] = node.inward.uiParams
-  protected[diplomacy] def mapParamsD(n: Int, p: Seq[DI]): Seq[DO] = node.outward.doParams
-
-  override protected[diplomacy] def instantiate(): Seq[Dangle] = {
-    val dangles = super.instantiate()
-    val orig_module = clone.base.module
-    val clone_auto = clone.io("auto").asInstanceOf[AutoBundle]
-
-    danglesOut.zipWithIndex.foreach {
-      case (d, i) =>
-        val orig = orig_module.dangles.find(_.source == HalfEdge(node.outward.serial, i))
-        require(
-          orig.isDefined,
-          s"Cloned node ${node.outward.name} must be connected externally out ${orig_module.name}"
-        )
-        val io_name = orig_module.auto.elements.find(_._2 eq orig.get.data).get._1
-        d.data <> clone_auto.elements(io_name)
-    }
-    danglesIn.zipWithIndex.foreach {
-      case (d, i) =>
-        val orig = orig_module.dangles.find(_.sink == HalfEdge(node.inward.serial, i))
-        require(orig.isDefined, s"Cloned node ${node.inward.name} must be connected externally in ${orig_module.name}")
-        val io_name = orig_module.auto.elements.find(_._2 eq orig.get.data).get._1
-        clone_auto.elements(io_name) <> d.data
-    }
-
-    dangles
   }
 }

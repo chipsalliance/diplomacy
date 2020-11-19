@@ -1,9 +1,10 @@
 // See LICENSE.SiFive for license details.
 
-package freechips.rocketchip.util
+package diplomacy
 
 import Chisel._
 import chisel3.Record
+
 import scala.collection.immutable.ListMap
 
 final case class HeterogeneousBag[T <: Data](elts: Seq[T]) extends Record with collection.IndexedSeq[T] {

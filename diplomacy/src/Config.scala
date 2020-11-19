@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package chipsalliance.rocketchip
+package diplomacy
 
 object config {
   abstract class Field[T] private (val default: Option[T]) {

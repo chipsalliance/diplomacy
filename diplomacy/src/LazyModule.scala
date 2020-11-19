@@ -1,14 +1,15 @@
 // See LICENSE.SiFive for license details.
 
-package freechips.rocketchip.diplomacy
+package diplomacy
 
 import Chisel.{defaultCompileOptions => _, _}
 import chisel3.internal.sourceinfo.{SourceInfo, UnlocatableSourceInfo}
 import chisel3.{withClockAndReset, MultiIOModule, RawModule, Reset}
 import chisel3.experimental.ChiselAnnotation
 import firrtl.passes.InlineAnnotation
-import freechips.rocketchip.config.Parameters
-import freechips.rocketchip.util.CompileOptions.NotStrictInferReset
+
+import diplomacy.config.Parameters
+import diplomacy.CompileOptions.NotStrictInferReset
 
 import scala.collection.immutable.{ListMap, SortedMap}
 import scala.util.matching._

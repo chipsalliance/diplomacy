@@ -1,6 +1,6 @@
 // See LICENSE.SiFive for license details.
 
-package freechips.rocketchip.macros
+package diplomacy.macros
 
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
@@ -20,7 +20,7 @@ object ValNameImpl {
       .find(_(0) != '$')
       .map { s =>
         val trim = s.replaceAll("\\s", "")
-        c.Expr[ValNameImpl] { q"_root_.freechips.rocketchip.macros.ValNameImpl(${trim})" }
+        c.Expr[ValNameImpl] { q"_root_.diplomacy.macros.ValNameImpl(${trim})" }
       }
       .getOrElse(c.abort(c.enclosingPosition, "Not a valid application."))
   }
