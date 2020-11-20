@@ -39,7 +39,9 @@ object diplomacy extends mill.Cross[diplomacyCrossModule]("2.11.12", "2.12.12")
 // Currently, it depends on all projects for fast development, after first step to give a standalone version, all these dependencies will be removed.
 class diplomacyCrossModule(val crossScalaVersion: String) extends CommonModule { m =>
   def scalaVersion = crossScalaVersion
- // ValName macros, give name to Nodes.
+  // 2.12.10 -> Array("2", "12", "10") -> "12" -> 12
+  protected def majorVersion = crossScalaVersion.split('.')(1).toInt
+  // ValName macros, give name to Nodes.
   object macros extends CommonModule {
     override def scalaVersion = crossScalaVersion
   
@@ -58,7 +60,12 @@ class diplomacyCrossModule(val crossScalaVersion: String) extends CommonModule {
 
   private val chisel3Plugin = getVersion("chisel3-plugin", cross = true)
 
-  override def scalacPluginIvyDeps = if(chisel3Module.isDefined) Agg[Dep]() else Agg(chisel3Plugin)
+  override def scalacPluginIvyDeps = 
+    if(chisel3Module.isDefined) Agg[Dep]()
+    else majorVersion match {
+      case i if i < 12 => Agg[Dep]()
+      case _ => Agg(chisel3Plugin)
+    }
 
   // add some scala ivy module you like here.
   override def ivyDeps = Agg(
