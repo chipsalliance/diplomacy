@@ -13,8 +13,10 @@ jobs:
       - name: Add Path
         run: echo "./bin/" >> $GITHUB_PATH
       - name: Check diplomacy Format
-        run: mill diplomacy.checkFormat 
+        run: mill diplomacy[2.12.12].checkFormat 
       - name: Check macros Format
-        run: mill macros.checkFormat
-      - name: Compile Project
-        run: mill diplomacy.compile
+        run: mill diplomacy[2.12.12].macros.checkFormat
+      - name: Compile Project in Scala 2.12.12
+        run: mill diplomacy[2.12.12].compile
+      - name: Compile Project in Scala 2.11.12
+        run: mill diplomacy[2.11.12].compile
