@@ -2,6 +2,7 @@
 import mill._
 import scalalib._
 import scalafmt._
+import publish._
 // support BSP
 import $ivy.`com.lihaoyi::mill-contrib-bsp:$MILL_VERSION`
 
@@ -18,15 +19,28 @@ def getVersion(dep: String, org: String = "edu.berkeley.cs", cross: Boolean = fa
     ivy"$org::$dep:$version"
 }
 
+trait CommonModule extends ScalaModule with ScalafmtModule with PublishModule {
+  def publishVersion = "0.1"
+
+  def pomSettings = PomSettings(
+    description = artifactName(),
+    organization = "edu.berkeley.cs",
+    url = "https://www.chisel-lang.org",
+    licenses = Seq(License.`BSD-3-Clause`),
+    versionControl = VersionControl.github("freechipsproject", "chisel3"),
+    developers = Seq(
+      Developer("jackbackrack", "Jonathan Bachrach", "https://eecs.berkeley.edu/~jrb/")
+    )
+  )
+
+}
 object diplomacy extends mill.Cross[diplomacyCrossModule]("2.11.12", "2.12.12")
 
 // Currently, it depends on all projects for fast development, after first step to give a standalone version, all these dependencies will be removed.
-class diplomacyCrossModule(val crossScalaVersion: String) extends ScalaModule with ScalafmtModule {
+class diplomacyCrossModule(val crossScalaVersion: String) extends CommonModule { m =>
   def scalaVersion = crossScalaVersion
  // ValName macros, give name to Nodes.
-  object macros extends ScalaModule with ScalafmtModule {
-    override def millSourcePath = os.pwd / "macros"
-
+  object macros extends CommonModule {
     override def scalaVersion = crossScalaVersion
   
     override def ivyDeps = Agg(
