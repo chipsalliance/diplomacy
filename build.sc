@@ -18,23 +18,21 @@ def getVersion(dep: String, org: String = "edu.berkeley.cs", cross: Boolean = fa
     ivy"$org::$dep:$version"
 }
 
-// Global Scala Version
-val sv = "2.12.12"
-
-// ValName macros, give name to Nodes.
-object macros extends ScalaModule with ScalafmtModule {
-  override def scalaVersion = sv
-
-  override def ivyDeps = Agg(
-    ivy"${scalaOrganization()}:scala-reflect:${scalaVersion()}"
-  )
-}
-
-object diplomacy extends diplomacy
+object diplomacy extends mill.Cross[diplomacyCrossModule]("2.11.12", "2.12.12")
 
 // Currently, it depends on all projects for fast development, after first step to give a standalone version, all these dependencies will be removed.
-class diplomacy extends ScalaModule with ScalafmtModule {
-  override def scalaVersion = sv
+class diplomacyCrossModule(val crossScalaVersion: String) extends ScalaModule with ScalafmtModule {
+  def scalaVersion = crossScalaVersion
+ // ValName macros, give name to Nodes.
+  object macros extends ScalaModule with ScalafmtModule {
+    override def millSourcePath = os.pwd / "macros"
+
+    override def scalaVersion = crossScalaVersion
+  
+    override def ivyDeps = Agg(
+      ivy"${scalaOrganization()}:scala-reflect:${scalaVersion()}"
+    )
+  }
 
   def chisel3Module: Option[PublishModule] = None
 
@@ -42,7 +40,7 @@ class diplomacy extends ScalaModule with ScalafmtModule {
     getVersion("chisel3")
   ) else Agg.empty[Dep]
 
-  override def moduleDeps = Seq(macros) ++ chisel3Module
+  override def moduleDeps = super.moduleDeps ++ Seq(macros) ++ chisel3Module
 
   private val chisel3Plugin = getVersion("chisel3-plugin", cross = true)
 
