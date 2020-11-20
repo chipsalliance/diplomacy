@@ -1,27 +1,15 @@
-# registe .gitmodule to local configurations
-init:
-	cd dependencies
-	# clone each repository from .gitmodules if this project is not a git repository
-	cat ../.gitmodules|rg -P '(?<=url = ).*' -o|while read repo ; do git clone $repo ; done
-	git add dependencies
-	git submodule init
-
-# bump all repositories to master(use it at your own risk)
-bump:
-	git submodule foreach "git fetch --all && git reset --hard origin/master"
+compile:
+	mill -i diplomacy[2.12.12].compile
 
 bsp:
 	mill -i mill.contrib.BSP/install
-
-compile:
-	mill -i diplomacy.compile
 
 clean:
 	git clean -fd
 
 reformat:
-	mill -i diplomacy.reformat
-	mill -i macros.reformat
+	mill -i diplomacy[2.12.12].reformat
+	mill -i diplomacy[2.12.12].macros.reformat
 
 checkformat:
-	mill -i diplomacy.checkFormat && mill -i macros.checkFormat
+	mill -i diplomacy[2.12.12].checkFormat && mill -i diplomacy[2.12.12].macros.checkFormat
