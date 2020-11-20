@@ -225,6 +225,12 @@ abstract class LazyModule()(implicit val p: Parameters) {
 
   /** Accessor for [[nodes]]. */
   def getNodes: List[BaseNode] = nodes
+
+  /** Accessor for [[info]]. */
+  def getInfo: SourceInfo = info
+
+  /** Accessor for [[parent]]. */
+  def getParent: Option[LazyModule] = parent
 }
 
 object LazyModule {
@@ -234,6 +240,9 @@ object LazyModule {
     * Each call to [[LazyScope.apply]] or [[LazyModule.apply]] will push that item onto the current scope.
     */
   protected[diplomacy] var scope: Option[LazyModule] = None
+
+  /** Accessor for [[scope]]. */
+  def getScope: Option[LazyModule] = scope
 
   /** Global index of [[LazyModule]]. Note that there is no zeroth module. */
   private var index = 0
@@ -276,7 +285,7 @@ sealed trait LazyModuleImpLike extends RawModule {
   val auto: AutoBundle
 
   /** The metadata that describes the [[HalfEdge]]s which generated [[auto]]. */
-  protected[diplomacy] val dangles: Seq[Dangle]
+  val dangles: Seq[Dangle]
 
   // [[wrapper.module]] had better not be accessed while LazyModules are still being built!
   require(
