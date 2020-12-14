@@ -1,15 +1,14 @@
 compile:
-	mill -i diplomacy[2.12.12].compile
+	mill -i diplomacy.compile
 
 bsp:
-	mill -i mill.contrib.BSP/install
+	mill -i mill.bsp.BSP/install
 
 clean:
 	git clean -fd
 
 reformat:
-	mill -i diplomacy[2.12.12].reformat
-	mill -i diplomacy[2.12.12].macros.reformat
+	mill -i __.reformat
 
 checkformat:
-	mill -i diplomacy[2.12.12].checkFormat && mill -i diplomacy[2.12.12].macros.checkFormat
+	mill -i __.checkFormat 

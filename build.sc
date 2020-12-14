@@ -3,12 +3,11 @@ import mill._
 import scalalib._
 import scalafmt._
 import publish._
-// support BSP
-import $ivy.`com.lihaoyi::mill-contrib-bsp:$MILL_VERSION`
 
 val defaultVersions = Map(
-  "chisel3" -> "3.4.0",
-  "chisel3-plugin" -> "3.4.0"
+  "chisel3" -> "3.4.1",
+  "chisel3-plugin" -> "3.4.1",
+  "scala" -> "2.12.12",
 )
 
 def getVersion(dep: String, org: String = "edu.berkeley.cs", cross: Boolean = false) = {
@@ -19,7 +18,9 @@ def getVersion(dep: String, org: String = "edu.berkeley.cs", cross: Boolean = fa
     ivy"$org::$dep:$version"
 }
 
-trait CommonModule extends ScalaModule with ScalafmtModule with PublishModule {
+trait CommonModule extends ScalaModule with SbtModule with ScalafmtModule with PublishModule {
+  def scalaVersion = defaultVersions("scala")
+
   def publishVersion = "0.1"
 
   def pomSettings = PomSettings(
@@ -34,23 +35,16 @@ trait CommonModule extends ScalaModule with ScalafmtModule with PublishModule {
   )
 
 }
-object diplomacy extends mill.Cross[diplomacyCrossModule]("2.11.12", "2.12.12")
 
-// Currently, it depends on all projects for fast development, after first step to give a standalone version, all these dependencies will be removed.
-class diplomacyCrossModule(val crossScalaVersion: String) extends CommonModule { m =>
-  def scalaVersion = crossScalaVersion
-  // 2.12.10 -> Array("2", "12", "10") -> "12" -> 12
-  protected def majorVersion = crossScalaVersion.split('.')(1).toInt
+object diplomacy extends CommonModule { m =>
   // ValName macros, give name to Nodes.
+  def chisel3Module: Option[PublishModule] = None
+
   object macros extends CommonModule {
-    override def scalaVersion = crossScalaVersion
-  
     override def ivyDeps = Agg(
       ivy"${scalaOrganization()}:scala-reflect:${scalaVersion()}"
     )
   }
-
-  def chisel3Module: Option[PublishModule] = None
 
   def chisel3IvyDeps = if (chisel3Module.isEmpty) Agg(
     getVersion("chisel3")
@@ -60,20 +54,10 @@ class diplomacyCrossModule(val crossScalaVersion: String) extends CommonModule {
 
   private val chisel3Plugin = getVersion("chisel3-plugin", cross = true)
 
-  override def scalacPluginIvyDeps = 
-    if(chisel3Module.isDefined) Agg[Dep]()
-    else majorVersion match {
-      case i if i < 12 => Agg[Dep]()
-      case _ => Agg(chisel3Plugin)
-    }
+  override def scalacPluginIvyDeps = Agg(chisel3Plugin)
 
   // add some scala ivy module you like here.
-  override def ivyDeps = Agg(
-    ivy"com.lihaoyi::upickle:latest.integration",
-    ivy"com.lihaoyi::os-lib:latest.integration",
-    ivy"com.lihaoyi::pprint:latest.integration",
-    ivy"org.scala-lang.modules::scala-xml:latest.integration"
-  ) ++ chisel3IvyDeps
+  override def ivyDeps = super.ivyDeps() ++ chisel3IvyDeps
 
   // use scalatest as your test framework
   object tests extends Tests {
