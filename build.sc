@@ -36,7 +36,9 @@ trait CommonModule extends ScalaModule with SbtModule with ScalafmtModule with P
 
 }
 
-object diplomacy extends CommonModule { m =>
+object diplomacy extends diplomacy
+
+class diplomacy extends CommonModule { m =>
   // ValName macros, give name to Nodes.
   def chisel3Module: Option[PublishModule] = None
 
@@ -54,7 +56,9 @@ object diplomacy extends CommonModule { m =>
 
   private val chisel3Plugin = getVersion("chisel3-plugin", cross = true)
 
-  override def scalacPluginIvyDeps = Agg(chisel3Plugin)
+  override def scalacPluginIvyDeps = if (chisel3Module.isEmpty) Agg(
+    getVersion("chisel3-plugin")
+  ) else Agg.empty[Dep]
 
   // add some scala ivy module you like here.
   override def ivyDeps = super.ivyDeps() ++ chisel3IvyDeps
