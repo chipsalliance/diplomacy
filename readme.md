@@ -16,14 +16,15 @@ LazyModule builds on top of the DAG annotated with the negotiated parameters and
 The [[NodeImp]] ("node implementation") is the main abstract type that associates the type parameters of all other abstract types. Defining a concrete implementation of [[NodeImp]] will therefore determine concrete types for all type parameters. For example, passing in a concrete instance of NodeImp to SourceNode will fully determine concrete types for all of a SourceNode's type parameters.
 
 # TODOs
-- [ ] Split from rocket-chip and compile with https://github.com/sequencer/chipsalliance-playground
-- [ ] Publish as standalone JAR
-- [ ] RocketChip test pass with `chisel3.diplomacy` as dependency.
-- [ ] unittest for CDE.
-- [ ] unittest for LazyModule.
-- [ ] unittest for Nodes.
-- [ ] scaladoc website.
-- [ ] release CI.
-- [ ] chipsalliance members review.
-- [ ] upstream to chipsallinace
-- [ ] upstream as chipsalliance/rocket-chip as its dependency.
+- [x] Split from rocket-chip and compile with https://github.com/sequencer/chipsalliance-playground  
+- [ ] absorb [AOP](https://github.com/chipsalliance/rocket-chip/blob/master/src/main/scala/aop/Select.scala)  
+- [ ] Publish as standalone JAR.  
+- [x] RocketChip test pass with `chisel3.diplomacy` as dependency.
+- [ ] unittest for CDE.  
+- [ ] unittest for LazyModule.  
+- [ ] unittest for Nodes.  
+- [ ] scaladoc website.  
+- [ ] release CI.  
+- [ ] chipsalliance members review.  
+- [ ] upstream to chipsallinace.  
+- [ ] upstream as chipsalliance/rocket-chip as its dependency.  
