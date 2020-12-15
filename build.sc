@@ -56,9 +56,7 @@ class diplomacy extends CommonModule { m =>
 
   private val chisel3Plugin = getVersion("chisel3-plugin", cross = true)
 
-  override def scalacPluginIvyDeps = if (chisel3Module.isEmpty) Agg(
-    getVersion("chisel3-plugin")
-  ) else Agg.empty[Dep]
+  override def scalacPluginIvyDeps = if (chisel3Module.isEmpty) Agg(chisel3Plugin) else Agg.empty[Dep]
 
   // add some scala ivy module you like here.
   override def ivyDeps = super.ivyDeps() ++ chisel3IvyDeps
