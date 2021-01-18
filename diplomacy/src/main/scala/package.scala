@@ -3,7 +3,6 @@
 import chisel3._
 import chisel3.internal.sourceinfo.{SourceInfo, SourceLine}
 import diplomacy.config.Parameters
-import diplomacy.macros.ValNameImpl
 
 import scala.language.implicitConversions
 
@@ -174,11 +173,7 @@ import scala.language.implicitConversions
   *   - Ephemeral: a temporary placeholder used for connectivity operations
   */
 package object diplomacy {
-  case class ValName(name: String)
-
-  object ValName {
-    implicit def materialize(implicit x: ValNameImpl): ValName = ValName(x.name)
-  }
+  def ValName(value: String) = sourcecode.Name(value)
 
   type SimpleNodeHandle[D, U, E, B <: Chisel.Data] = NodeHandle[D, U, E, B, D, U, E, B]
   type AnyMixedNode = MixedNode[_, _, _, _ <: Data, _, _, _, _ <: Data]

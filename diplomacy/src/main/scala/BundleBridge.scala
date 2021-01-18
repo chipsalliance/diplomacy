@@ -40,7 +40,7 @@ class BundleBridgeImp[T <: Data]()
   def render(e: BundleBridgeEdgeParams[T]) = RenderedEdge(colour = "#cccc00" /* yellow */ )
 }
 
-case class BundleBridgeSink[T <: Data](genOpt: Option[() => T] = None)(implicit valName: ValName)
+case class BundleBridgeSink[T <: Data](genOpt: Option[() => T] = None)(implicit valName: sourcecode.Name)
     extends SinkNode(new BundleBridgeImp[T])(Seq(BundleBridgeParams(genOpt))) {
   def bundle: T = in(0)._1
 
@@ -48,9 +48,9 @@ case class BundleBridgeSink[T <: Data](genOpt: Option[() => T] = None)(implicit 
     DataMirror.directionOf(elt) == ActualDirection.Unspecified
   }
 
-  def makeIO()(implicit valName: ValName): T = {
+  def makeIO()(implicit valName: sourcecode.Name): T = {
     val io: T = IO(if (inferOutput) Output(chiselTypeOf(bundle)) else chiselTypeClone(bundle))
-    io.suggestName(valName.name)
+    io.suggestName(valName.value)
     io <> bundle
     io
   }
@@ -58,12 +58,12 @@ case class BundleBridgeSink[T <: Data](genOpt: Option[() => T] = None)(implicit 
 }
 
 object BundleBridgeSink {
-  def apply[T <: Data]()(implicit valName: ValName): BundleBridgeSink[T] = {
+  def apply[T <: Data]()(implicit valName: sourcecode.Name): BundleBridgeSink[T] = {
     BundleBridgeSink(None)
   }
 }
 
-case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implicit valName: ValName)
+case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implicit valName: sourcecode.Name)
     extends SourceNode(new BundleBridgeImp[T])(Seq(BundleBridgeParams(genOpt))) {
   def bundle: T = out(0)._1
 
@@ -71,9 +71,9 @@ case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implici
     DataMirror.directionOf(elt) == ActualDirection.Unspecified
   }
 
-  def makeIO()(implicit valName: ValName): T = {
+  def makeIO()(implicit valName: sourcecode.Name): T = {
     val io: T = IO(if (inferInput) Input(chiselTypeOf(bundle)) else Flipped(chiselTypeClone(bundle)))
-    io.suggestName(valName.name)
+    io.suggestName(valName.value)
     bundle <> io
     io
   }
@@ -90,17 +90,17 @@ case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implici
 }
 
 object BundleBridgeSource {
-  def apply[T <: Data]()(implicit valName: ValName): BundleBridgeSource[T] = {
+  def apply[T <: Data]()(implicit valName: sourcecode.Name): BundleBridgeSource[T] = {
     BundleBridgeSource(None)
   }
-  def apply[T <: Data](gen: () => T)(implicit valName: ValName): BundleBridgeSource[T] = {
+  def apply[T <: Data](gen: () => T)(implicit valName: sourcecode.Name): BundleBridgeSource[T] = {
     BundleBridgeSource(Some(gen))
   }
 }
 
-case class BundleBridgeIdentityNode[T <: Data]()(implicit valName: ValName)
+case class BundleBridgeIdentityNode[T <: Data]()(implicit valName: sourcecode.Name)
     extends IdentityNode(new BundleBridgeImp[T])()
-case class BundleBridgeEphemeralNode[T <: Data]()(implicit valName: ValName)
+case class BundleBridgeEphemeralNode[T <: Data]()(implicit valName: sourcecode.Name)
     extends EphemeralNode(new BundleBridgeImp[T])()
 
 object BundleBridgeNameNode {
@@ -110,7 +110,7 @@ object BundleBridgeNameNode {
 case class BundleBridgeNexusNode[T <: Data](
   default:             Option[() => T] = None,
   inputRequiresOutput: Boolean = false) // when false, connecting a source does not mandate connecting a sink
-(implicit valName:     ValName)
+(implicit valName:     sourcecode.Name)
     extends NexusNode(new BundleBridgeImp[T])(
       dFn = seq => seq.headOption.getOrElse(BundleBridgeParams(default)),
       uFn = seq => seq.headOption.getOrElse(BundleBridgeParams(None)),

@@ -39,27 +39,22 @@ trait CommonModule extends ScalaModule with SbtModule with ScalafmtModule with P
 object diplomacy extends diplomacy
 
 class diplomacy extends CommonModule { m =>
-  // ValName macros, give name to Nodes.
   def chisel3Module: Option[PublishModule] = None
-
-  object macros extends CommonModule {
-    override def ivyDeps = Agg(
-      ivy"${scalaOrganization()}:scala-reflect:${scalaVersion()}"
-    )
-  }
 
   def chisel3IvyDeps = if (chisel3Module.isEmpty) Agg(
     getVersion("chisel3")
   ) else Agg.empty[Dep]
 
-  override def moduleDeps = super.moduleDeps ++ Seq(macros) ++ chisel3Module
+  override def moduleDeps = super.moduleDeps ++ chisel3Module
 
   private val chisel3Plugin = getVersion("chisel3-plugin", cross = true)
 
   override def scalacPluginIvyDeps = if (chisel3Module.isEmpty) Agg(chisel3Plugin) else Agg.empty[Dep]
 
   // add some scala ivy module you like here.
-  override def ivyDeps = super.ivyDeps() ++ chisel3IvyDeps
+  override def ivyDeps = Agg(
+    ivy"com.lihaoyi::sourcecode:0.1.9",
+  ) ++ chisel3IvyDeps
 
   // use scalatest as your test framework
   object tests extends Tests {

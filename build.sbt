@@ -23,14 +23,8 @@ lazy val chisel3Ref = ProjectRef(uri(s"git://github.com/chipsalliance/chisel3#v$
 lazy val chisel3Lib = "edu.berkeley.cs" %% "chisel3" % chiselVersion
 lazy val chiselPluginLib = "edu.berkeley.cs" % "chisel3-plugin" % chiselVersion cross CrossVersion.full
 
-lazy val macros = project
-  .in(file("diplomacy/macros"))
-  .settings(commonSettings)
-  .settings(publishArtifact := false)
-
 lazy val diplomacy = project
   .in(file("diplomacy"))
   .sourceDependency(chisel3Ref, chisel3Lib)
-  .dependsOn(macros)
   .settings(addCompilerPlugin(chiselPluginLib))
   .settings(commonSettings)
