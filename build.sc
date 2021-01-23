@@ -1,65 +1,46 @@
-// import Mill dependency
 import mill._
 import scalalib._
 import scalafmt._
 import publish._
 
-val defaultVersions = Map(
-  "chisel3" -> "3.4.1",
-  "chisel3-plugin" -> "3.4.1",
-  "scala" -> "2.12.12",
-)
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.1`
+import de.tobiasroeser.mill.vcs.version.VcsVersion
 
-def getVersion(dep: String, org: String = "edu.berkeley.cs", cross: Boolean = false) = {
-  val version = sys.env.getOrElse(dep + "Version", defaultVersions(dep))
-  if (cross)
-    ivy"$org:::$dep:$version"
-  else
-    ivy"$org::$dep:$version"
-}
-
-trait CommonModule extends ScalaModule with SbtModule with ScalafmtModule with PublishModule {
-  def scalaVersion = defaultVersions("scala")
-
-  def publishVersion = "0.1"
-
-  def pomSettings = PomSettings(
-    description = artifactName(),
-    organization = "edu.berkeley.cs",
-    url = "https://www.chisel-lang.org",
-    licenses = Seq(License.`BSD-3-Clause`),
-    versionControl = VersionControl.github("freechipsproject", "chisel3"),
-    developers = Seq(
-      Developer("jackbackrack", "Jonathan Bachrach", "https://eecs.berkeley.edu/~jrb/")
-    )
-  )
-
+object ivys {
+  val chisel3 = ivy"edu.berkeley.cs::chisel3:3.4.3"
+  val chisel3Plugin = ivy"edu.berkeley.cs:::chisel3-plugin:3.4.3"
+  val sourcecode = ivy"com.lihaoyi::sourcecode:0.2.7"
 }
 
 object diplomacy extends diplomacy
 
-class diplomacy extends CommonModule { m =>
+class diplomacy extends ScalaModule with ScalafmtModule with PublishModule { m =>
+  def scalaVersion = "2.12.13"
+
   def chisel3Module: Option[PublishModule] = None
 
-  def chisel3IvyDeps = if (chisel3Module.isEmpty) Agg(
-    getVersion("chisel3")
-  ) else Agg.empty[Dep]
+  override def moduleDeps = Seq() ++ chisel3Module
 
-  override def moduleDeps = super.moduleDeps ++ chisel3Module
+  override def scalacPluginIvyDeps = if (chisel3Module.isEmpty) Agg(ivys.chisel3Plugin) else Agg.empty[Dep]
 
-  private val chisel3Plugin = getVersion("chisel3-plugin", cross = true)
+  override def ivyDeps = Agg(ivys.sourcecode) ++ (if (chisel3Module.isEmpty) Some(ivys.chisel3) else None)
 
-  override def scalacPluginIvyDeps = if (chisel3Module.isEmpty) Agg(chisel3Plugin) else Agg.empty[Dep]
-
-  // add some scala ivy module you like here.
-  override def ivyDeps = Agg(
-    ivy"com.lihaoyi::sourcecode:0.1.9",
-  ) ++ chisel3IvyDeps
-
-  // use scalatest as your test framework
-  object tests extends Tests {
-    override def ivyDeps = Agg(ivy"org.scalatest::scalatest:latest.integration")
-
-    def testFrameworks = Seq("org.scalatest.tools.Framework")
+  object tests extends Tests with TestModule.Utest {
+    def ivyDeps = Agg(ivy"com.lihaoyi::utest:0.7.10")
   }
+
+  def publishVersion = de.tobiasroeser.mill.vcs.version.VcsVersion.vcsState().format()
+
+  def pomSettings = PomSettings(
+    description = artifactName(),
+    organization = "me.sequncer",
+    url = "https://www.github.com/sequencer/diplomacy",
+    licenses = Seq(License.`Apache-2.0`),
+    versionControl = VersionControl.github("sequencer", "diplomacy"),
+    developers = Seq(
+      Developer("terpstra", "Wesley W. Terpstra", "https://github.com/terpstra"),
+      Developer("hcook", "Henry Cook", "https://github.com/hcook"),
+      Developer("sequencer", "Jiuyang Liu", "https://jiuyang.me"),
+    )
+  )
 }
