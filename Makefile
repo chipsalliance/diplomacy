@@ -1,5 +1,5 @@
 compile:
-	mill -i diplomacy.compile
+	mill -i __.compile
 
 bsp:
 	mill -i mill.bsp.BSP/install
