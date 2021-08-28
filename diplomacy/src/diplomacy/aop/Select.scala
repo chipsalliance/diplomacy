@@ -1,7 +1,8 @@
 package diplomacy.aop
 
 import chisel3.Data
-import diplomacy._
+import diplomacy.lazymodule.LazyModule
+import diplomacy.nodes.{AnyMixedNode, BaseNode, MixedNode}
 
 /** Combinators for finding specific sets of [[LazyModule]]s/[[BaseNode]]s.
   *

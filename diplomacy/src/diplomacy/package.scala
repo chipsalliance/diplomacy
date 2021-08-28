@@ -1,8 +1,9 @@
 // See LICENSE.SiFive for license details.
 
-import chisel3._
-import chisel3.internal.sourceinfo.{SourceInfo, SourceLine}
 import chipsalliance.rocketchip.config.Parameters
+import chisel3.internal.sourceinfo.{SourceInfo, SourceLine}
+import diplomacy.lazymodule.ModuleValue
+import diplomacy.nodes.{MonitorsEnabled, NodeHandle, NodeImp, RenderFlipped}
 
 import scala.language.implicitConversions
 
@@ -173,23 +174,12 @@ import scala.language.implicitConversions
   *   - Ephemeral: a temporary placeholder used for connectivity operations
   */
 package object diplomacy {
-  def ValName(value: String) = sourcecode.Name(value)
-
-  type SimpleNodeHandle[D, U, E, B <: Chisel.Data] = NodeHandle[D, U, E, B, D, U, E, B]
-  type AnyMixedNode = MixedNode[_, _, _, _ <: Data, _, _, _, _ <: Data]
-
-  def sourceLine(sourceInfo: SourceInfo, prefix: String = " (", suffix: String = ")") = sourceInfo match {
-    case SourceLine(filename, line, col) => s"$prefix$filename:$line:$col$suffix"
-    case _                               => ""
-  }
-
-  implicit class DataToAugmentedData[T <: Data](private val x: T) extends AnyVal {
-    def getElements: Seq[Element] = x match {
-      case e: Element   => Seq(e)
-      case a: Aggregate => a.getElements.flatMap(_.getElements)
+  def ValName(value:                            String) = sourcecode.Name(value)
+  private[diplomacy] def sourceLine(sourceInfo: SourceInfo, prefix: String = " (", suffix: String = ")") =
+    sourceInfo match {
+      case SourceLine(filename, line, col) => s"$prefix$filename:$line:$col$suffix"
+      case _                               => ""
     }
-  }
-
   def EnableMonitors[T](body: Parameters => T)(implicit p: Parameters) = body(p.alterPartial {
     case MonitorsEnabled => true
   })
@@ -199,14 +189,5 @@ package object diplomacy {
   def FlipRendering[T](body: Parameters => T)(implicit p: Parameters) = body(p.alterPartial {
     case RenderFlipped => !p(RenderFlipped)
   })
-
   implicit def moduleValue[T](value: ModuleValue[T]): T = value.getWrappedValue
-
-  type BundleBridgeInwardNode[T <: Data] =
-    InwardNodeHandle[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
-  type BundleBridgeOutwardNode[T <: Data] =
-    OutwardNodeHandle[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
-  type BundleBridgeNode[T <: Data] = NodeHandle[BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[
-    T
-  ], T, BundleBridgeParams[T], BundleBridgeParams[T], BundleBridgeEdgeParams[T], T]
 }

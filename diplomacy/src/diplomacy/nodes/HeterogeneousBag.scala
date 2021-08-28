@@ -1,6 +1,6 @@
 // See LICENSE.SiFive for license details.
 
-package diplomacy
+package diplomacy.nodes
 
 import Chisel._
 import chisel3.Record

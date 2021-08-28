@@ -1,6 +1,4 @@
-// See LICENSE.SiFive for license details.
-
-package diplomacy
+package diplomacy.lazymodule
 
 import chisel3.ExplicitCompileOptions.NotStrict
 
