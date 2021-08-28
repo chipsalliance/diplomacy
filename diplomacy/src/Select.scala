@@ -3,7 +3,7 @@
 package diplomacy
 
 import chisel3.Data
-import config.Parameters
+import chipsalliance.rocketchip.config.Parameters
 
 /** Combinators for finding specific sets of [[LazyModule]]s/[[Node]]s.
   *

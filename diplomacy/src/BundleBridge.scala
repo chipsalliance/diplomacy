@@ -6,7 +6,7 @@ import chisel3._
 import chisel3.experimental.DataMirror.internal.chiselTypeClone
 import chisel3.experimental.{DataMirror, IO}
 import chisel3.internal.sourceinfo.SourceInfo
-import diplomacy.config.Parameters
+import chipsalliance.rocketchip.config.Parameters
 
 case class BundleBridgeParams[T <: Data](genOpt: Option[() => T])
 

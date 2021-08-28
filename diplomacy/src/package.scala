@@ -2,7 +2,7 @@
 
 import chisel3._
 import chisel3.internal.sourceinfo.{SourceInfo, SourceLine}
-import diplomacy.config.Parameters
+import chipsalliance.rocketchip.config.Parameters
 
 import scala.language.implicitConversions
 

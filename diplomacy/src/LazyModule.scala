@@ -7,8 +7,7 @@ import chisel3.internal.sourceinfo.{SourceInfo, UnlocatableSourceInfo}
 import chisel3.{withClockAndReset, MultiIOModule, RawModule, Reset}
 import chisel3.experimental.ChiselAnnotation
 import firrtl.passes.InlineAnnotation
-
-import diplomacy.config.Parameters
+import chipsalliance.rocketchip.config.Parameters
 import diplomacy.CompileOptions.NotStrictInferReset
 
 import scala.collection.immutable.{ListMap, SortedMap}
