@@ -13,5 +13,5 @@ reformat:
 checkformat:
 	mill -i __.checkFormat 
 
-sbtCompile:
-	sbt compile
+test:
+	mill -i __.test
