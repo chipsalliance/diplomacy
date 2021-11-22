@@ -5,6 +5,8 @@ import publish._
 
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.1`
 import de.tobiasroeser.mill.vcs.version.VcsVersion
+import $ivy.`de.tototec::de.tobiasroeser.mill.jacoco_mill0.9:0.0.1`
+import de.tobiasroeser.mill.jacoco.JacocoTestModule
 
 object ivys {
   val chisel3 = ivy"edu.berkeley.cs::chisel3:3.4.3"
@@ -26,11 +28,11 @@ class diplomacy(val crossScalaVersion: String) extends CrossScalaModule with Sca
 
   override def scalacPluginIvyDeps = if (chisel3Module.isEmpty) Agg(ivys.chisel3Plugin) else Agg.empty[Dep]
 
-  override def ivyDeps = Agg(ivys.sourcecode) ++ 
+  override def ivyDeps = Agg(ivys.sourcecode) ++
     (if (chisel3Module.isEmpty) Some(ivys.chisel3) else None) ++
     (if (cdeModule.isEmpty) Some(ivys.cde) else None)
 
-  object tests extends Tests with TestModule.Utest {
+  object test extends Tests with TestModule.Utest with JacocoTestModule {
     def ivyDeps = Agg(ivys.utest)
   }
 
@@ -45,14 +47,15 @@ class diplomacy(val crossScalaVersion: String) extends CrossScalaModule with Sca
     developers = Seq(
       Developer("terpstra", "Wesley W. Terpstra", "https://github.com/terpstra"),
       Developer("hcook", "Henry Cook", "https://github.com/hcook"),
-      Developer("sequencer", "Jiuyang Liu", "https://github.com/sequencer"),
+      Developer("sequencer", "Jiuyang Liu", "https://github.com/sequencer")
     )
   )
 
-  override def sonatypeUri: String = "https://s01.oss.sonatype.org/service/local"
+  override def sonatypeUri:         String = "https://s01.oss.sonatype.org/service/local"
   override def sonatypeSnapshotUri: String = "https://s01.oss.sonatype.org/content/repositories/snapshots"
   def githubPublish = T {
-    os.proc("gpg", "--import", "--no-tty", "--batch", "--yes").call(stdin = java.util.Base64.getDecoder.decode(sys.env("PGP_SECRET").replace("\n", "")))
+    os.proc("gpg", "--import", "--no-tty", "--batch", "--yes")
+      .call(stdin = java.util.Base64.getDecoder.decode(sys.env("PGP_SECRET").replace("\n", "")))
     val PublishModule.PublishData(artifactInfo, artifacts) = publishArtifacts()
     new SonatypePublisher(
       sonatypeUri,
