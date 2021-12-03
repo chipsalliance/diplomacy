@@ -61,7 +61,10 @@ abstract class LazyModule()(implicit val p: Parameters) {
   }
 
   /** Finds the name of the first non-anonymous Scala class while walking up the class hierarchy. */
-  private def findClassName(c: Class[_]): String = {
+  private[diplomacy] def findClassName(c: Class[_]): String = {
+    // FIXME: Although LazyModule class like: diplomacy.unittest.LazyModuleSpec$DemoLazyModule$3 is anonymous,
+    //        it contains a readable class name as well(LazyModuleSpec$DemoLazyModule) we should consider return
+    //        a better class name, at least we should not fallback to LazyModule.
     val n = c.getName.split('.').last
     if (n.contains('$')) findClassName(c.getSuperclass) else n
   }
