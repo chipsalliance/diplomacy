@@ -24,6 +24,7 @@ object NodeSpec extends TestSuite {
       class SinkLazyModule extends LazyModule {
         val sink = new DemoSink
         lazy val module = new LazyModuleImp(this){
+          printf(p"${sink.bundle}")
           chisel3.assert(sink.bundle === 4.U)
         }
       }
@@ -35,6 +36,8 @@ object NodeSpec extends TestSuite {
       }
       println(chisel3.stage.ChiselStage.emitSystemVerilog(LazyModule(new TopLazyModule).module))
     }
+
+
     test("BundleBridge normal usage"){
       implicit val p = Parameters.empty
       class BottomLazyModule extends LazyModule {
