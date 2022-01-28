@@ -3,7 +3,7 @@ package diplomacy.unittest
 import chipsalliance.rocketchip.config.Parameters
 import chisel3._
 import diplomacy.bundlebridge.{BundleBridgeSink, BundleBridgeSource}
-import diplomacy.lazymodule.{InModuleBody, LazyModule, LazyModuleImp, LazyModuleImpLike}
+import diplomacy.lazymodule.{InModuleBody, LazyModule, LazyModuleImp, LazyModuleImpLike, LazyScope, SimpleLazyModule}
 import utest._
 
 object LazyModuleSpec extends TestSuite {
@@ -174,7 +174,7 @@ object LazyModuleSpec extends TestSuite {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
       class DemoSource(implicit valName: sourcecode.Name) extends BundleBridgeSource[UInt](Some(genOption))
-      class SourceLazyModule(implicit p: Parameters) extends LazyModule {
+      class SourceLazyModule(implicit p: Parameters) extends LazyModule with LazyScope {
         // can have InModuleBody in the lazymodule
         val source = new DemoSource
         val iosource = InModuleBody{ source.makeIO()}
@@ -182,8 +182,11 @@ object LazyModuleSpec extends TestSuite {
       }
       val sourceModule = LazyModule(new SourceLazyModule)
       val sink = sourceModule.source.makeSink()
+      LazyScope.apply[LazyModule]("name", "SimpleLazyModule", None)(sourceModule)(p)
       chisel3.stage.ChiselStage.elaborate(sourceModule.module)
       println(sourceModule.module.wrapper.inModuleBody)
+      println(sourceModule.iosource.getWrappedValue)
+      println(sourceModule.iosource.toString)
     }
 
     test("var info and def getInfo: SourceInfo = info"){
@@ -203,7 +206,7 @@ object LazyModuleSpec extends TestSuite {
 
     // TODO: how to  test function:getScope in object Lazymodule
     test("var scope and def getScope :Option[LazyModule] = scope"){
-      class DemoLazyModule(implicit p: Parameters) extends LazyModule {
+      class DemoLazyModule(implicit p: Parameters) extends LazyModule with LazyScope {
         class InDemoLazyModule(implicit p: Parameters) extends LazyModule {
           lazy val module: LazyModuleImpLike = new LazyModuleImp(this) {}
         }
@@ -215,10 +218,16 @@ object LazyModuleSpec extends TestSuite {
       }
       implicit val p = Parameters.empty
       val lm = LazyModule(new DemoLazyModule)
+      //LazyScope.apply()
+      //LazyScope.apply[LazyModule]("name", "SimpleLazyModule", None)(lm)(p)
+
       //val demolm = LazyModule()
       chisel3.stage.ChiselStage.elaborate(lm.module)
       //var info and getInfo return the line to wrapper a new Lazymodue class
       println(LazyModule.getScope)
+      println(LazyModule.scope)
+      println(lm.toString)
+      println(LazyScope.inline())
     }
 
     test("def lazymodule.module.wrapper : Suggests instance name for [[LazyModuleImpLike]] module."){
