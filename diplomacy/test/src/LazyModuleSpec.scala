@@ -3,13 +3,13 @@ package diplomacy.unittest
 import chipsalliance.rocketchip.config.Parameters
 import chisel3._
 import diplomacy.bundlebridge.{BundleBridgeSink, BundleBridgeSource}
-import diplomacy.lazymodule.{InModuleBody, LazyModule, LazyModuleImp, LazyModuleImpLike, LazyScope, SimpleLazyModule}
+import diplomacy.lazymodule.{InModuleBody, LazyModule, LazyModuleImp, LazyModuleImpLike, LazyRawModuleImp, LazyScope, SimpleLazyModule}
 import utest._
 
 object LazyModuleSpec extends TestSuite {
   def tests: Tests = Tests {
 
-    test("LazyModule can be defined with") {
+    test("A example : LazyModule can be defined ") {
       class DemoLazyModule(implicit p: Parameters) extends LazyModule {
         lazy val module: LazyModuleImpLike = new LazyModuleImp(this) {
           printf(p"hello world")
@@ -130,7 +130,8 @@ object LazyModuleSpec extends TestSuite {
       //test function <line> indicate the line of instantiating if lazymoduel
       //utest.assert(demoLM.line.contains("LazyModuleSpec.scala:100:30"))
       // function line return a string
-      utest.assert(demoLM.line.contains("L"))
+      println(demoLM.line)
+      utest.assert(demoLM.line.contains("129:30"))
     }
 
     test("var nodes and def getNodes : test how to get nodes in a lazymodule instantiste ") {
@@ -145,9 +146,10 @@ object LazyModuleSpec extends TestSuite {
       }
       val sourceModule = LazyModule(new SourceLazyModule)
       chisel3.stage.ChiselStage.elaborate(sourceModule.module)
+      //print : List(BundleBridgeSource(Some(diplomacy.unittest.LazyModuleSpec$$$Lambda$1601/0x000000080061ac98@3b95a6db)))
       println(sourceModule.nodes)
+      //print : List(BundleBridgeSource(Some(diplomacy.unittest.LazyModuleSpec$$$Lambda$1601/0x000000080061ac98@3b95a6db)))
       println(sourceModule.getNodes)
-      //Fixme : why all these name is Lazymodule
     }
 
     test("var moduleName and pathName and  instanceName : test how to get nodes in a lazymodule instantiste ") {
@@ -167,7 +169,6 @@ object LazyModuleSpec extends TestSuite {
       utest.assert(sourceModule.pathName.contains("LazyModule"))
       println(sourceModule.instanceName)
       utest.assert(sourceModule.instanceName.contains("LazyModule"))
-      //utest.assert(sourceModule.nodes.contains("Lambda"))
     }
 
     test("var inModuleBody: List[() => Unit] = List[() => Unit]() ") {
@@ -184,8 +185,11 @@ object LazyModuleSpec extends TestSuite {
       val sink = sourceModule.source.makeSink()
       LazyScope.apply[LazyModule]("name", "SimpleLazyModule", None)(sourceModule)(p)
       chisel3.stage.ChiselStage.elaborate(sourceModule.module)
+      //print : List(diplomacy.lazymodule.InModuleBody$$$Lambda$1613/0x000000080061fcc8@4eaa375c)
       println(sourceModule.module.wrapper.inModuleBody)
+      //print : UInt<32>(IO iosource in LazyModule)
       println(sourceModule.iosource.getWrappedValue)
+      //print : diplomacy.lazymodule.InModuleBody$$anon$1@36e43829
       println(sourceModule.iosource.toString)
     }
 
@@ -259,10 +263,32 @@ object LazyModuleSpec extends TestSuite {
       val sourceModule = LazyModule(new SourceLazyModule)
       val sink = sourceModule.source.makeSink()
       chisel3.stage.ChiselStage.elaborate(sourceModule.module)
+      //print : List(Dangle(HalfEdge(5,0),HalfEdge(6,0),false,sourceModule_source_out,UInt<32>(IO auto_source_out in LazyModule)))
       println(sourceModule.module.dangles)
+      //print : AutoBundle(IO auto in LazyModule)
       println(sourceModule.module.auto)
+      //ToDo:Why module desireName is LazyModule
       println(sourceModule.module.desiredName)
     }
 
+    test("LazyModule can be defined with LazyRawModuleImp") {
+      class DemoLazyModule(implicit p: Parameters) extends LazyModule {
+        override lazy val module = new LazyRawModuleImp(this) {
+          childClock := false.B.asClock
+          childReset := chisel3.DontCare
+          //printf(p"hello world")
+        }
+      }
+      test("new DemoLazyModule doesn't do any thing") {
+        implicit val p = Parameters.empty
+        val demo = LazyModule(new DemoLazyModule)
+        chisel3.stage.ChiselStage.emitSystemVerilog(demo.module)
+        test("demo can generate a simple verilog with invoking module") {
+          utest.assert(
+          )
+          utest.assert(demo.name == "demo")
+        }
+      }
+    }
   }
 }
