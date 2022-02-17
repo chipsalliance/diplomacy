@@ -4,7 +4,7 @@ import chipsalliance.rocketchip.config.Parameters
 import chisel3.internal.sourceinfo.SourceInfo
 import chisel3.{Data, _}
 import diplomacy.bundlebridge.BundleBridgeNexus.{fillN, orReduction}
-import diplomacy.bundlebridge.{BundleBridgeNexus, BundleBridgeNexusNode, BundleBridgeSink, BundleBridgeSource}
+import diplomacy.bundlebridge.{BundleBridgeNexus, BundleBridgeNexusNode, BundleBridgeSink, BundleBridgeSource,BundleBridgeEphemeralNode,BundleBridgeIdentityNode}
 import diplomacy.lazymodule.{LazyModule, LazyModuleImp}
 import diplomacy.nodes.{NexusNode, RenderedEdge, SimpleNodeImp, SinkNode, SourceNode}
 import utest._
@@ -24,7 +24,7 @@ object BundleBridgeSpec extends TestSuite {
         lazy val module = new LazyModuleImp(this) {
           val source_bundile = source.bundle
           //TODO : why source_io can't be connected to a Unit value
-          //val source_io = source.makeIO("source_io")
+          val source_io = source.makeIO("source_io")
           //source_io := 4.U(32.W)
           //printf(p"${source_io}")
 
@@ -77,6 +77,10 @@ object BundleBridgeSpec extends TestSuite {
           printf(p"${sourceModule.source.diParams}")
           printf(p"${sourceModule.source.diParams.size}")
           //sinkModule.sink := sourceModule.source
+
+          printf(p"${sourceModule.source.bundleIn}")
+          printf(p"${sourceModule.source.bundleOut}")
+
         }
       }
       println(chisel3.stage.ChiselStage.emitSystemVerilog(LazyModule(new TopLazyModule).module))
@@ -86,6 +90,7 @@ object BundleBridgeSpec extends TestSuite {
       implicit val p = Parameters.empty
       class BottomLazyModule extends LazyModule {
         val source = BundleBridgeSource(() => UInt(32.W))
+        val anothersource = BundleBridgeSource()
         lazy val module = new LazyModuleImp(this) {
           source.bundle := 4.U
         }
@@ -94,6 +99,8 @@ object BundleBridgeSpec extends TestSuite {
         val bottom = LazyModule(new BottomLazyModule)
         // make sink node and connect.
         val sink = bottom.source.makeSink()
+        //require(!doneSink, "Can only call makeSink() once")
+        //val sinkx = bottom.source.makeSink()
         lazy val module = new LazyModuleImp(this) {
           chisel3.assert(sink.bundle === 4.U)
         }
@@ -107,6 +114,13 @@ object BundleBridgeSpec extends TestSuite {
 
       class DemoSource(implicit valName: sourcecode.Name) extends BundleBridgeSource[UInt](Some(genOption))
       class DemoSink(implicit valName: sourcecode.Name) extends BundleBridgeSink[UInt](Some(genOption))
+      class DemoNexus(implicit valName: sourcecode.Name) extends BundleBridgeNexus[UInt](
+        inputFn = BundleBridgeNexus.orReduction[UInt](false),
+        outputFn = BundleBridgeNexus.fillN[UInt](false),
+        default = Some(genOption),
+        inputRequiresOutput = false,
+        shouldBeInlined = true
+      )(p)
 
       class SourceLazyModule extends LazyModule {
         val source = new DemoSource
@@ -125,33 +139,23 @@ object BundleBridgeSpec extends TestSuite {
         }
       }
 
-      class NexusLazymodule[T <: Data](genOpt: Option[() => T] = None) extends LazyModule {
+      class NexusLazymodule[T <: Data](genOpt: Option[() => T]) extends LazyModule {
 
         val aname: Option[String] = Some("X")
-        val registered: Boolean = true
+        val registered: Boolean = false
         val default: Option[() => T] = genOpt
         val inputRequiresOutput: Boolean = true // when false, connecting a source does not mandate connecting a sink
-        val canshouldBeInlined: Boolean = true
+        val canshouldBeInlined: Boolean = false
 
         val broadcast: BundleBridgeNexus[T] = LazyModule(
           new BundleBridgeNexus[T](
             inputFn = BundleBridgeNexus.requireOne[T](registered),
             outputFn = BundleBridgeNexus.fillN[T](registered),
             default = default,
-            inputRequiresOutput = true,
+            inputRequiresOutput = inputRequiresOutput,
             shouldBeInlined = canshouldBeInlined
           )(p)
         )
-
-        // use object undleBridgeNexus to return a BundleBridgeNexusNode
-        val broadcast_other: BundleBridgeNexusNode[T] = BundleBridgeNexus[T](
-          inputFn = BundleBridgeNexus.orReduction[T](registered),
-          outputFn = BundleBridgeNexus.fillN[T](registered),
-          default = default,
-          inputRequiresOutput = false,
-          shouldBeInlined = canshouldBeInlined
-        )(p)
-
 
         val broadcastname = aname.foreach(broadcast.suggestName)
         //def return a node
@@ -166,11 +170,16 @@ object BundleBridgeSpec extends TestSuite {
         val sourceModule = LazyModule(new SourceLazyModule)
         val sinkModule = LazyModule(new SinkLazyModule)
         val OthersinkModule = LazyModule(new SinkLazyModule)
+        val oherNexusLM = LazyModule(new DemoNexus)
         val NexusLM = LazyModule(new NexusLazymodule[UInt](Some(genOption)))
 
         NexusLM.broadcastnode :*= sourceModule.source
         sinkModule.sink := NexusLM.broadcastnode
         OthersinkModule.sink := NexusLM.broadcastnode
+
+        //oherNexusLM.node :*= sourceModule.source
+        //sinkModule.sink := oherNexusLM.node
+        //OthersinkModule.sink := oherNexusLM.node
 
         lazy val module = new LazyModuleImp(this) {
           printf(p"${NexusLM.broadcastnode.oStar}")
@@ -201,13 +210,95 @@ object BundleBridgeSpec extends TestSuite {
           printf(p"${NexusLM.broadcastnode.outer}")
           printf(p"${NexusLM.broadcastnode.outward}")
           printf(p"${NexusLM.broadcastnode.oPorts}")
+
+          printf(p"${NexusLM.broadcast.module}")
+          //printf(p"${NexusLM.broadcast.module.defaultWireOpt}")
         }
       }
 
       val TopLM = LazyModule(new TopLazyModule())
       //chisel3.stage.ChiselStage.elaborate(ExampleLM.broadcast.module)
       //chisel3.stage.ChiselStage.elaborate(TopLM.module)
+      //println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.NexusLM.module))
       println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      //printf(p"${TopLM.NexusLM.broadcast.module.defaultWireOpt}")
+    }
+
+    test("BundleBridge Identity prototype and normal usage") {
+      implicit val p = Parameters.empty
+      val genOption = () => UInt(32.W)
+
+      class DemoSource(implicit valName: sourcecode.Name) extends BundleBridgeSource[UInt](Some(genOption))
+      class DemoSink(implicit valName: sourcecode.Name) extends BundleBridgeSink[UInt](Some(genOption))
+      class DemoNexus(implicit valName: sourcecode.Name) extends BundleBridgeNexus[UInt](
+        inputFn = BundleBridgeNexus.orReduction[UInt](false),
+        outputFn = BundleBridgeNexus.fillN[UInt](false),
+        default = Some(genOption),
+        inputRequiresOutput = false,
+        shouldBeInlined = true
+      )(p)
+
+      class SourceLazyModule extends LazyModule {
+        val source = new DemoSource
+        lazy val module = new LazyModuleImp(this) {
+          val source_bundle = source.bundle
+          source_bundle := 4.U
+          printf(p"${source_bundle}")
+        }
+      }
+
+      class SinkLazyModule extends LazyModule {
+        val sink = new DemoSink
+        lazy val module = new LazyModuleImp(this) {
+          printf(p"${sink.bundle}")
+          chisel3.assert(sink.bundle === 4.U)
+        }
+      }
+
+      class NexusLazymodule[T <: Data](genOpt: Option[() => T])(implicit valName: sourcecode.Name) extends LazyModule {
+
+        val nodeIdentity = BundleBridgeIdentityNode[T]()(valName)
+        val nodeEphemeral = BundleBridgeEphemeralNode[T]()(valName)
+
+        lazy val module = new LazyModuleImp(this) {
+        }
+      }
+
+      class TopLazyModule extends LazyModule {
+        val sourceModule = LazyModule(new SourceLazyModule)
+        val EphemeralsourceModule = LazyModule(new SourceLazyModule)
+        val sinkModule = LazyModule(new SinkLazyModule)
+        val EphemeralsinkModule = LazyModule(new SinkLazyModule)
+        val oherNexusLM = LazyModule(new DemoNexus)
+        val NexusLM = LazyModule(new NexusLazymodule[UInt](Some(genOption))("nodeX"))
+
+        //val IdentitysourceModule = LazyModule(new SourceLazyModule)
+        //val IdentitysinkModule = LazyModule(new SinkLazyModule)
+
+
+        oherNexusLM.node :*= sourceModule.source
+        sinkModule.sink := oherNexusLM.node
+        //OthersinkModule.sink := oherNexusLM.node
+
+        NexusLM.nodeEphemeral :*= EphemeralsourceModule.source
+        EphemeralsinkModule.sink := NexusLM.nodeEphemeral
+
+        //NexusLM.nodeIdentity := IdentitysourceModule.source
+        //IdentitysinkModule.sink := NexusLM.nodeIdentity
+
+
+
+
+        lazy val module = new LazyModuleImp(this) {
+        }
+      }
+
+      val TopLM = LazyModule(new TopLazyModule())
+      //chisel3.stage.ChiselStage.elaborate(ExampleLM.broadcast.module)
+      //chisel3.stage.ChiselStage.elaborate(TopLM.module)
+      //println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.NexusLM.module))
+      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      //printf(p"${TopLM.NexusLM.broadcast.module.defaultWireOpt}")
     }
 
     test("parameterd adder to test .") {
