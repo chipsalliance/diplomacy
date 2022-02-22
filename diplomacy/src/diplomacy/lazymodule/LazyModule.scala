@@ -212,6 +212,7 @@ abstract class LazyModule()(implicit val p: Parameters) {
     * @param iterfunc Function to call on each descendant.
     */
   def nodeIterator(iterfunc: BaseNode => Unit): Unit = {
+    // FIXME: apply function nodeIterator will return this.nodes.foreach(iterfunc: BaseNode => Unit) twice
     nodes.foreach(iterfunc)
     childrenIterator(_.nodes.foreach(iterfunc))
   }
