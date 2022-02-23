@@ -2,7 +2,8 @@ package diplomacy.unittest
 
 import chipsalliance.rocketchip.config.Parameters
 import chisel3._
-import diplomacy.bundlebridge.{BundleBridgeSink, BundleBridgeSource}
+import chisel3.internal.sourceinfo.SourceLine
+import diplomacy.bundlebridge.{BundleBridgeIdentityNode, BundleBridgeSink, BundleBridgeSource}
 import diplomacy.lazymodule.{InModuleBody, LazyModule, LazyModuleImp, LazyModuleImpLike, LazyRawModuleImp, LazyScope, SimpleLazyModule}
 import utest._
 
@@ -47,6 +48,7 @@ object LazyModuleSpec extends TestSuite {
       //var parent
       utest.assert(outerLM.parent.isEmpty)
       utest.assert(outerLM.innerLM.parent.contains(outerLM))
+      utest.assert(outerLM.innerLM.inInnerLM.parent.contains(outerLM.innerLM))
       //method parents
       utest.assert(outerLM.parents.isEmpty)
       utest.assert(outerLM.innerLM.parents.contains(outerLM))
@@ -111,7 +113,7 @@ object LazyModuleSpec extends TestSuite {
         }
       }
       class SourceLazyModule extends LazyModule {
-        val insource = LazyModule(new InSourceLazyModule)
+        val insource  = LazyModule(new InSourceLazyModule)
         val insourcesecond = LazyModule(new InSourceLazyModule)
         val source = new DemoSource
         var flag = 0
@@ -120,8 +122,8 @@ object LazyModuleSpec extends TestSuite {
           source.bundle := 4.U
         }
       }
-      var sourcenodeflag = 0
-      var sinknodeflag = 0
+      var sourceNodeFlag = 0
+      var sinkNodeFlag = 0
       val sourceModule = LazyModule(new SourceLazyModule)
       chisel3.stage.ChiselStage.elaborate(sourceModule.module)
       //test childrenIterator : childrenIterator return itself Lazymodule name and Child LazyModule name
@@ -137,19 +139,16 @@ object LazyModuleSpec extends TestSuite {
       utest.assert(sourceModule.insourcesecond.flag == 1)
       utest.assert(sourceModule.flag == 1)
       //test nodeIterator
-      //Todo : why node's name is   <LazyModuleSpec$$$Lambda$1576>
+      //Todo : why node's name is   <LazyModuleSpec$$$Lambda$1576> .
+
+      // FIXME: apply function nodeIterator will return this.nodes.foreach(iterfunc: BaseNode => Unit) twice
       sourceModule.nodeIterator {
-        case basenode : BundleBridgeSource[UInt] =>
-          sourcenodeflag += 1
-        case basenode : BundleBridgeSink[UInt] =>
-          sinknodeflag += 1
+        case basenode : BundleBridgeSource[UInt] => sourceNodeFlag += 1
+        case basenode : BundleBridgeSink[UInt] => sinkNodeFlag += 1
         case _ =>
       }
-      println(sourcenodeflag)
-      println(sinknodeflag)
-      utest.assert(sourcenodeflag == 4)
-      utest.assert(sinknodeflag == 4)
-      // FIXME: apply function nodeIterator will return this.nodes.foreach(iterfunc: BaseNode => Unit) twice
+      utest.assert(sourceNodeFlag == 4)
+      utest.assert(sinkNodeFlag == 4)
     }
 
     test("method line : Return source line that defines this instance "){
@@ -162,7 +161,7 @@ object LazyModuleSpec extends TestSuite {
       val demoLM = LazyModule(new DemoLazyModule)
       //test function <line> indicate the line of instantiating if lazymoduel
       //function line return a string , which line to define the LazyModule
-      utest.assert(demoLM.line.contains("162:30"))
+      utest.assert(demoLM.line.contains("161:30"))
     }
 
     test("var nodes and def getNodes : test how to get nodes in a lazymodule instantiste ") {
@@ -179,19 +178,20 @@ object LazyModuleSpec extends TestSuite {
       val sourceModule = LazyModule(new SourceLazyModule)
       chisel3.stage.ChiselStage.elaborate(sourceModule.module)
       //print : List(BundleBridgeSource(Some(diplomacy.unittest.LazyModuleSpec$$$Lambda$1601/0x000000080061ac98@3b95a6db)))
+      var sourceflag : Int = 0
+      var sinkflag : Int = 0
+
       val nodeslist = sourceModule.nodes
       val getnodeslist = sourceModule.getNodes
-      println(List(nodeslist , getnodeslist))
-      println(nodeslist:::getnodeslist)
       for (node <- (nodeslist ::: getnodeslist)){
         node match{
-          case sourcenode : BundleBridgeSink[UInt] => println("a")
-          case sinknode : BundleBridgeSource[UInt] => println("b")
-          case _ => println("c")
+          case sourcenode : BundleBridgeSink[UInt] => sourceflag += 1
+          case sinknode : BundleBridgeSource[UInt] => sinkflag +=  1
+          case _ =>
         }
       }
-      // TODO: how to contains  a BundleBridgeSource Node
-      //print : List(BundleBridgeSource(Some(diplomacy.unittest.LazyModuleSpec$$$Lambda$1601/0x000000080061ac98@3b95a6db)))
+      utest.assert(sourceflag == 2  && sinkflag == 2)
+
     }
 
     test("var moduleName and pathName and  instanceName : test how to get nodes in a lazymodule instantiste ") {
@@ -205,11 +205,8 @@ object LazyModuleSpec extends TestSuite {
       val sourceModule = LazyModule(new SourceLazyModule)
       chisel3.stage.ChiselStage.elaborate(sourceModule.module)
       //Fixme : why all these name is Lazymodule
-      println(sourceModule.moduleName)
       utest.assert(sourceModule.moduleName.contains("LazyModule"))
-      println(sourceModule.pathName)
       utest.assert(sourceModule.pathName.contains("LazyModule"))
-      println(sourceModule.instanceName)
       utest.assert(sourceModule.instanceName.contains("LazyModule"))
     }
 
@@ -220,21 +217,40 @@ object LazyModuleSpec extends TestSuite {
       class SourceLazyModule(implicit p: Parameters) extends LazyModule {
         // can have InModuleBody in the lazymodule
         val source = new DemoSource
-        val iosource = InModuleBody{ source.makeIO()}
-        lazy val module = new LazyModuleImp(this){}
+        val sink = source.makeSink()
+        val sourceIO = InModuleBody{ source.makeIO()}
+        InModuleBody {
+          source.bundle := 4.U
+        }
+        lazy val module = new LazyModuleImp(this){
+          chisel3.assert(sink.bundle === 4.U)
+        }
       }
       val sourceModule = LazyModule(new SourceLazyModule)
-      val sink = sourceModule.source.makeSink()
       LazyScope.apply[LazyModule]("name", "SimpleLazyModule", None)(sourceModule)(p)
-      chisel3.stage.ChiselStage.elaborate(sourceModule.module)
-      //print : List(diplomacy.lazymodule.InModuleBody$$$Lambda$1613/0x000000080061fcc8@4eaa375c)
-      println(sourceModule.module.wrapper)
-      println(sourceModule.module.wrapper.inModuleBody)
-      //print : UInt<32>(IO iosource in LazyModule)
-      println(sourceModule.iosource)
-      println(sourceModule.iosource.getWrappedValue)
-      //print : diplomacy.lazymodule.InModuleBody$$anon$1@36e43829
-      println(sourceModule.iosource.toString)
+      println(chisel3.stage.ChiselStage.emitSystemVerilog(sourceModule.module))
+      //chisel3.stage.ChiselStage.elaborate(sourceModule.module)
+      //test def wrapper
+      var wrapperTestFlag = 0
+      val wrapperOfModule = sourceModule.module.wrapper
+      wrapperOfModule match {
+        case args : SourceLazyModule => wrapperTestFlag = 1
+        case _ => wrapperTestFlag = 0
+      }
+      utest.assert(wrapperTestFlag == 1)
+
+      //test var inModuleBody: List[() => Unit] = List[() => Unit]()
+      //there are two InModuleBody in LazyModule(SourceLazyModule)
+      utest.assert(sourceModule.inModuleBody.length == 2)
+
+      //test  getWrappedValue
+      var getWrappedValueFlag = 0
+      val WrappedValue = sourceModule.sourceIO.getWrappedValue.getWidth
+      WrappedValue match {
+        case 32 => getWrappedValueFlag = 1
+        case _ =>
+      }
+      utest.assert(getWrappedValueFlag ==1)
     }
 
     test("var info and def getInfo: SourceInfo = info"){
@@ -247,36 +263,56 @@ object LazyModuleSpec extends TestSuite {
       implicit val p = Parameters.empty
       val lm = LazyModule(new DemoLazyModule)
       chisel3.stage.ChiselStage.elaborate(lm.module)
-      //var info and getInfo return the line to wrapper a new Lazymodue class
-      println(lm.getInfo.makeMessage(c => c.toString))
-      //utest.assert(lm.getInfo.toString.contains("SourceLine"))
-      println(lm.info)
+      //test var info and getInfo :  return the line to wrapper a new Lazymodue class
+      utest.assert(lm.getInfo.makeMessage(c => c.toString).contains("264:26"))
+
+      val sourceLineInfo = lm.info
+      sourceLineInfo match{
+        case n : SourceLine => {
+          utest.assert(n.line == 264)
+          utest.assert(n.col  == 26)
+          utest.assert(n.filename == "LazyModuleSpec.scala")
+          utest.assert(n.makeMessage(c => c) == "@[LazyModuleSpec.scala 264:26]")
+        }
+        case _ => println("Error :  LazyModule var info is not a SourceLine class !")
+      }
+
+      val sourceLineGetInfo = lm.getInfo
+      sourceLineGetInfo match{
+        case n : SourceLine => {
+          utest.assert(n.line == 264)
+          utest.assert(n.col  == 26)
+          utest.assert(n.filename == "LazyModuleSpec.scala")
+          utest.assert(n.makeMessage(c => c) == "@[LazyModuleSpec.scala 264:26]")
+        }
+        case _ => println("Error : LazyModule method getInfo is not a SourceLine class !")
+      }
     }
 
-    // TODO: how to  test function:getScope in object Lazymodule
     test("var scope and def getScope :Option[LazyModule] = scope"){
+      implicit val p = Parameters.empty
       class DemoLazyModule(implicit p: Parameters) extends LazyModule with LazyScope {
         class InDemoLazyModule(implicit p: Parameters) extends LazyModule {
           lazy val module: LazyModuleImpLike = new LazyModuleImp(this) {}
+          val inDemoSourceNode = BundleBridgeIdentityNode[Bool]
         }
-        //node
+        val DemoSourceNode = BundleBridgeSource(() => UInt(32.W))
         lazy val module: LazyModuleImpLike = new LazyModuleImp(this) {
           //logic and connect and init value
         }
         val InLM = LazyModule(new InDemoLazyModule)
       }
-      implicit val p = Parameters.empty
       val lm = LazyModule(new DemoLazyModule)
-      //LazyScope.apply()
-      //LazyScope.apply[LazyModule]("name", "SimpleLazyModule", None)(lm)(p)
-
-      //val demolm = LazyModule()
       chisel3.stage.ChiselStage.elaborate(lm.module)
-      //var info and getInfo return the line to wrapper a new Lazymodue class
-      println(LazyModule.getScope)
-      println(LazyModule.scope)
-      println(lm.toString)
-      println(LazyScope.inline())
+
+      //protected[diplomacy] val parent: Option[LazyModule] = LazyModule.scope
+      //default scope is None , when LazyModule is on the top of hierarchy
+      utest.assert(LazyModule.getScope == None)
+      utest.assert(LazyModule.scope == None)
+      utest.assert(lm.toString.contains("LazyScope named lm"))
+      //test  method shouldBeInlined
+      utest.assert(lm.shouldBeInlined == false)
+      utest.assert(lm.InLM.shouldBeInlined == true)
     }
 
     test("def lazymodule.module.wrapper : Suggests instance name for [[LazyModuleImpLike]] module."){
@@ -293,27 +329,40 @@ object LazyModuleSpec extends TestSuite {
       utest.assert(lm.module.wrapper == lm)
     }
 
-    test("def lazymodule.module.dangles/auto/desiredName : Suggests instance name for [[LazyModuleImpLike]] module."){
+    test("def lazymodule.module.dangles/auto/desiredName : Suggests instance name for [[LazyModuleImpLike]] module.") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
+
       class DemoSource(implicit valName: sourcecode.Name) extends BundleBridgeSource[UInt](Some(genOption))
-      class SourceLazyModule(implicit p: Parameters) extends LazyModule {
-        // can have InModuleBody in the lazymodule
+      class DemoSink(implicit valName: sourcecode.Name) extends BundleBridgeSink[UInt](Some(genOption))
+
+      class SourceLazyModule extends LazyModule {
         val source = new DemoSource
-        val iosource = InModuleBody{ source.makeIO()}
-        lazy val module = new LazyModuleImp(this){
-          val a = Output(UInt(1.W))
+        lazy val module = new LazyModuleImp(this) {
+          val source_bundile = source.bundle
+          source_bundile := 4.U(32.W)
         }
       }
-      val sourceModule = LazyModule(new SourceLazyModule)
-      val sink = sourceModule.source.makeSink()
-      chisel3.stage.ChiselStage.elaborate(sourceModule.module)
-      //print : List(Dangle(HalfEdge(5,0),HalfEdge(6,0),false,sourceModule_source_out,UInt<32>(IO auto_source_out in LazyModule)))
-      println(sourceModule.module.dangles)
+      class SinkLazyModule extends LazyModule {
+        val sink = new DemoSink
+        lazy val module = new LazyModuleImp(this) {
+          val sink_io = sink.makeIO("sink_io")
+        }
+      }
+      class TopLazyModule extends LazyModule {
+        val sourceModule = LazyModule(new SourceLazyModule)
+        val sinkModule = LazyModule(new SinkLazyModule)
+        sinkModule.sink :*= sourceModule.source
+        lazy val module = new LazyModuleImp(this) {
+        }
+      }
+      val TopModule = LazyModule(new TopLazyModule)
+      chisel3.stage.ChiselStage.elaborate(TopModule.module)
+      utest.assert(TopModule.module.dangles.isEmpty)
       //print : AutoBundle(IO auto in LazyModule)
-      println(sourceModule.module.auto)
+      utest.assert(TopModule.module.auto.elements.isEmpty)
       //ToDo:Why module desireName is LazyModule
-      println(sourceModule.module.desiredName)
+      utest.assert(TopModule.module.desiredName.contains("LazyModule"))
     }
 
     test("LazyModule can be defined with LazyRawModuleImp") {
@@ -321,7 +370,6 @@ object LazyModuleSpec extends TestSuite {
         override lazy val module = new LazyRawModuleImp(this) {
           childClock := false.B.asClock
           childReset := chisel3.DontCare
-          //printf(p"hello world")
         }
       }
       test("new DemoLazyModule doesn't do any thing") {
@@ -335,5 +383,27 @@ object LazyModuleSpec extends TestSuite {
         }
       }
     }
-  }
+
+    test("A example : SimpleLazyModule ") {
+      class DemoLazyModule(implicit p: Parameters) extends SimpleLazyModule {
+        val InDemo = LazyModule(new SimpleLazyModule)
+        override lazy val module = new LazyModuleImp(this) {
+          printf(p"hello world")
+        }
+      }
+        implicit val p = Parameters.empty
+        val demo = LazyModule(new DemoLazyModule)
+        //val demoAnother = LazyModule(new SimpleLazyModule)
+          utest.assert(
+            chisel3.stage.ChiselStage
+              .emitSystemVerilog(demo.module)
+              .contains("""$fwrite(32'h80000002,"hello world");""")
+          )
+          utest.assert(demo.name == "demo")
+          demo.InDemo match{
+            case simpleLM : SimpleLazyModule => utest.assert(simpleLM.name == "InDemo")
+            case _ =>
+          }
+      }
+    }
 }
