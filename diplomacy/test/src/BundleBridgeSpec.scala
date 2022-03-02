@@ -4,9 +4,9 @@ import chipsalliance.rocketchip.config.Parameters
 import chisel3.internal.sourceinfo.SourceInfo
 import chisel3.{Data, _}
 import diplomacy.bundlebridge.BundleBridgeNexus.{fillN, orReduction}
-import diplomacy.bundlebridge.{BundleBridgeNexus, BundleBridgeNexusNode, BundleBridgeSink, BundleBridgeSource,BundleBridgeEphemeralNode,BundleBridgeIdentityNode}
+import diplomacy.bundlebridge.{BundleBridgeEphemeralNode, BundleBridgeIdentityNode, BundleBridgeNexus, BundleBridgeNexusNode, BundleBridgeSink, BundleBridgeSource}
 import diplomacy.lazymodule.{LazyModule, LazyModuleImp}
-import diplomacy.nodes.{NexusNode, RenderedEdge, SimpleNodeImp, SinkNode, SourceNode}
+import diplomacy.nodes.{BIND_QUERY, BIND_STAR, NexusNode, NodeBinding, RenderedEdge, SimpleNodeImp, SinkNode, SourceNode}
 import utest._
 import chisel3.util.random.FibonacciLFSR
 
@@ -24,21 +24,15 @@ object BundleBridgeSpec extends TestSuite {
         lazy val module = new LazyModuleImp(this) {
           val source_bundile = source.bundle
           //TODO : why source_io can't be connected to a Unit value
-          val source_io = source.makeIO("source_io")
-          //source_io := 4.U(32.W)
-          //printf(p"${source_io}")
-
+          //val source_io = source.makeIO("source_io")
           source_bundile := 4.U(32.W)
-          //printf(p"${source_bundile}")
         }
       }
       class SinkLazyModule extends LazyModule {
         val sink = new DemoSink
         lazy val module = new LazyModuleImp(this) {
-          //printf(p"${sink.bundle}")
           val sink_io = sink.makeIO("sink_io")
-          //printf(p"${sink_io}")
-          //chisel3.assert(sink.bundle === 4.U)
+          chisel3.assert(sink.bundle === 4.U)
         }
       }
       class TopLazyModule extends LazyModule {
@@ -46,44 +40,79 @@ object BundleBridgeSpec extends TestSuite {
         val sinkModule = LazyModule(new SinkLazyModule)
         sinkModule.sink :*= sourceModule.source
         lazy val module = new LazyModuleImp(this) {
-          // := source    only have oPorts show the binding in the [[InwardNode]] on the other end.
-          printf(p"${sourceModule.source.oPorts}")
-          printf(p"${sourceModule.source.oPorts.size}")
-          printf(p"${sourceModule.source.iPorts}")
-          printf(p"${sourceModule.source.iPorts.size}")
-
+          //test oPorts
+          // lazy val oPorts: Seq[(Int, InwardNode[DO, UO, BO], Parameters, SourceInfo)] = oDirectPorts.map(oTrace)
+          //  := source    only have oPorts show the binding in the [[InwardNode]] on the other end.
+          //printf(p"${sourceModule.source.oPorts}")
+          utest.assert(sourceModule.source.oPorts.size == 1)
+          utest.assert(sourceModule.source.oPorts.head._1 == 0)
+          utest.assert(sourceModule.source.oPorts.head._2.name == "sinkModule.sink")
+          utest.assert(sourceModule.source.oPorts.head._2.index == 0)
+          utest.assert(sourceModule.source.oPorts.head._2.lazyModule == sinkModule)
+          // sinknode :*=
+          utest.assert(sinkModule.sink.oPorts.size == 0)
+          utest.assert(sinkModule.sink.oPorts.isEmpty)
+          //test iPorts
+          //lazy val iPorts: Seq[(Int, OutwardNode[DI, UI, BI], Parameters, SourceInfo)] = iDirectPorts.map(iTrace)
+          // := source do not have iPorts (  [OutwardNode]] on the other end of this binding.  )
+          //printf(p"${sourceModule.source.iPorts}")
+          utest.assert(sourceModule.source.iPorts.isEmpty)
+          utest.assert(sourceModule.source.iPorts.size == 0)
+          utest.assert(sinkModule.sink.iPorts.size == 1)
+          utest.assert(sinkModule.sink.iPorts.head._1 == 0)
+          utest.assert(sinkModule.sink.iPorts.head._2.name == "sourceModule.source")
+          utest.assert(sinkModule.sink.iPorts.head._2.index == 0)
+          utest.assert(sinkModule.sink.iPorts.head._2.lazyModule == sourceModule)
+          // test iBindings
           // source node's outwardnode have accPo that pass to oBindings
-          // nothing
-          printf(p"${sourceModule.source.iBindings}")
-          // return  (0, BundleBridgeSink , query ,chipsalliance.rocketchip.config$EmptyParameters , SourceLine(NodeSpec.scala,47,25))
-          printf(p"${sourceModule.source.oBindings}")
-
-
-          // sink :=     only have iPorts show the binding in the [[OutwardNode]] on the other end.
-          printf(p"${sinkModule.sink.oPorts}")
-          printf(p"${sinkModule.sink.oPorts.size}")
-          printf(p"${sinkModule.sink.iPorts}")
-          printf(p"${sinkModule.sink.iPorts.size}")
-
-          // sink node's inwardnode have accPi that pass to iBindings
-          //
-          // return  (0, BundleBridgeSource , query ,chipsalliance.rocketchip.config$EmptyParameters , SourceLine(NodeSpec.scala,47,25))
-          printf(p"${sourceModule.source.iBindings}")
-          // nothing
-          printf(p"${sourceModule.source.oBindings}")
-
-          printf(p"${sourceModule.source.doParams}")
-          printf(p"${sourceModule.source.doParams.size}")
-          printf(p"${sourceModule.source.diParams}")
-          printf(p"${sourceModule.source.diParams.size}")
-          //sinkModule.sink := sourceModule.source
-
-          printf(p"${sourceModule.source.bundleIn}")
-          printf(p"${sourceModule.source.bundleOut}")
-
+          //iBindings : immutable.Seq[(Int, OutwardNode[DI, UI, BI], NodeBinding, Parameters, SourceInfo)]
+          utest.assert(sourceModule.source.iBindings.isEmpty)
+          utest.assert(sinkModule.sink.iBindings.head._1 == 0)
+          utest.assert(sinkModule.sink.iBindings.head._2.name == "sourceModule.source")
+          utest.assert(sinkModule.sink.iBindings.head._3 == BIND_STAR)
+          // test oBindings
+          //printf(p"${sourceModule.source.oBindings}")
+          utest.assert(sourceModule.source.oBindings.head._1 == 0)
+          utest.assert(sourceModule.source.oBindings.head._2.name == "sinkModule.sink")
+          utest.assert(sourceModule.source.oBindings.head._3 == BIND_QUERY)
+          utest.assert(sinkModule.sink.oBindings.isEmpty)
+          //test diParams
+          utest.assert(sourceModule.source.diParams.isEmpty)
+          utest.assert(sinkModule.sink.diParams.size == 1)
+          //test doParams
+          utest.assert(sourceModule.source.doParams.size == 1)
+          utest.assert(sinkModule.sink.doParams.isEmpty)
         }
       }
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(LazyModule(new TopLazyModule).module))
+      val TopModule = LazyModule(new TopLazyModule)
+      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopModule.module))
+      //test bundlein/bundleout
+      //bundleOut: Seq[BO] = edgesOut.map(e => chisel3.Wire(outer.bundleO(e)))
+      //println(TopModule.sourceModule.source.bundleOut(0))
+      utest.assert(TopModule.sourceModule.source.bundleIn.isEmpty)
+      utest.assert(TopModule.sourceModule.source.bundleOut(0).getWidth == 32)
+      utest.assert(TopModule.sinkModule.sink.bundleIn(0).getWidth == 32)
+      utest.assert(TopModule.sinkModule.sink.bundleOut.isEmpty)
+      //test danglesIn/bundleout
+      //@param serial the global [[BaseNode.serial]] number of the [[BaseNode]] that this [[HalfEdge]] connects to.
+      //@param index  the `index` in the [[BaseNode]]'s input or output port list that this [[HalfEdge]] belongs to.
+      //FixMe : MixedNode.scala line 32 maybe have some mistake
+      utest.assert(TopModule.sourceModule.source.danglesIn.isEmpty)
+      utest.assert(TopModule.sourceModule.source.danglesOut(0).source.serial == 0)
+      utest.assert(TopModule.sourceModule.source.danglesOut(0).source.index  == 0)
+      utest.assert(TopModule.sourceModule.source.danglesOut(0).sink.serial == 1)
+      utest.assert(TopModule.sourceModule.source.danglesOut(0).sink.index == 0)
+      utest.assert(TopModule.sourceModule.source.danglesOut(0).name == "source_out")
+      utest.assert(TopModule.sourceModule.source.danglesOut(0).flipped == false)
+      println(TopModule.sourceModule.source.danglesOut(0).data.getClass )
+      utest.assert(TopModule.sinkModule.sink.danglesIn(0).source.serial == 0)
+      utest.assert(TopModule.sinkModule.sink.danglesIn(0).source.index  == 0)
+      utest.assert(TopModule.sinkModule.sink.danglesIn(0).sink.serial  == 1)
+      utest.assert(TopModule.sinkModule.sink.danglesIn(0).sink.index  == 0)
+      utest.assert(TopModule.sinkModule.sink.danglesIn(0).name == "sink_in")
+      utest.assert(TopModule.sinkModule.sink.danglesIn(0).flipped  ==  true)
+      println(TopModule.sinkModule.sink.danglesIn(0).data.getClass)
+      utest.assert(TopModule.sinkModule.sink.danglesOut.isEmpty)
     }
 
     test("BundleBridge Source and Sink normal usage") {
@@ -97,7 +126,6 @@ object BundleBridgeSpec extends TestSuite {
       }
       class TopLazyModule extends LazyModule {
         val bottom = LazyModule(new BottomLazyModule)
-        // make sink node and connect.
         val sink = bottom.source.makeSink()
         //require(!doneSink, "Can only call makeSink() once")
         //val sinkx = bottom.source.makeSink()
@@ -258,32 +286,33 @@ object BundleBridgeSpec extends TestSuite {
       class NexusLazymodule[T <: Data](genOpt: Option[() => T])(implicit valName: sourcecode.Name) extends LazyModule {
 
         val nodeIdentity = BundleBridgeIdentityNode[T]()(valName)
-        val nodeEphemeral = BundleBridgeEphemeralNode[T]()(valName)
+        //val nodeEphemeral = BundleBridgeEphemeralNode[T]()(valName)
 
         lazy val module = new LazyModuleImp(this) {
         }
       }
 
       class TopLazyModule extends LazyModule {
-        val sourceModule = LazyModule(new SourceLazyModule)
-        val EphemeralsourceModule = LazyModule(new SourceLazyModule)
-        val sinkModule = LazyModule(new SinkLazyModule)
-        val EphemeralsinkModule = LazyModule(new SinkLazyModule)
+        //val sourceModule = LazyModule(new SourceLazyModule)
+        //val EphemeralsourceModule = LazyModule(new SourceLazyModule)
+        //val sinkModule = LazyModule(new SinkLazyModule)
+        //val EphemeralsinkModule = LazyModule(new SinkLazyModule)
         val oherNexusLM = LazyModule(new DemoNexus)
         val NexusLM = LazyModule(new NexusLazymodule[UInt](Some(genOption))("nodeX"))
 
-        //val IdentitysourceModule = LazyModule(new SourceLazyModule)
+        val IdentitysourceModule = LazyModule(new SourceLazyModule)
         //val IdentitysinkModule = LazyModule(new SinkLazyModule)
 
 
-        oherNexusLM.node :*= sourceModule.source
-        sinkModule.sink := oherNexusLM.node
+        //oherNexusLM.node :*= sourceModule.source
+        //sinkModule.sink := oherNexusLM.node
         //OthersinkModule.sink := oherNexusLM.node
 
-        NexusLM.nodeEphemeral :*= EphemeralsourceModule.source
-        EphemeralsinkModule.sink := NexusLM.nodeEphemeral
+        //NexusLM.nodeEphemeral := EphemeralsourceModule.source
+        //EphemeralsinkModule.sink := NexusLM.nodeEphemeral
 
-        //NexusLM.nodeIdentity := IdentitysourceModule.source
+        //IdentitysinkModule.sink := IdentitysourceModule.source
+        NexusLM.nodeIdentity :*= oherNexusLM.node := IdentitysourceModule.source
         //IdentitysinkModule.sink := NexusLM.nodeIdentity
 
 
