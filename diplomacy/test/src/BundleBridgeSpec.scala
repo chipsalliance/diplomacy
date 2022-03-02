@@ -82,6 +82,7 @@ object BundleBridgeSpec extends TestSuite {
           //test doParams
           utest.assert(sourceModule.source.doParams.size == 1)
           utest.assert(sinkModule.sink.doParams.isEmpty)
+
         }
       }
       val TopModule = LazyModule(new TopLazyModule)
@@ -96,7 +97,7 @@ object BundleBridgeSpec extends TestSuite {
       //test danglesIn/bundleout
       //@param serial the global [[BaseNode.serial]] number of the [[BaseNode]] that this [[HalfEdge]] connects to.
       //@param index  the `index` in the [[BaseNode]]'s input or output port list that this [[HalfEdge]] belongs to.
-      //FixMe : MixedNode.scala line 32 maybe have some mistake
+      //FixMe : MixedNode.scala line 32 maybe have some mistake , should be danglesOut.flipred ==false ,danglesIn.flipred ==true
       utest.assert(TopModule.sourceModule.source.danglesIn.isEmpty)
       utest.assert(TopModule.sourceModule.source.danglesOut(0).source.serial == 0)
       utest.assert(TopModule.sourceModule.source.danglesOut(0).source.index  == 0)
