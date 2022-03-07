@@ -376,7 +376,6 @@ object BundleBridgeSpec extends TestSuite {
         lazy val module = new LazyModuleImp(this) {
           val source_bundle = source.bundle
           source_bundle := 4.U
-          printf(p"${source_bundle}")
         }
       }
 
@@ -434,14 +433,12 @@ object BundleBridgeSpec extends TestSuite {
         lazy val module = new LazyModuleImp(this) {
           val source_bundle = source.bundle
           source_bundle := 4.U
-          printf(p"${source_bundle}")
         }
       }
 
       class SinkLazyModule extends LazyModule {
         val sink = new DemoSink
         lazy val module = new LazyModuleImp(this) {
-          printf(p"${sink.bundle}")
           chisel3.assert(sink.bundle === 4.U)
         }
       }
