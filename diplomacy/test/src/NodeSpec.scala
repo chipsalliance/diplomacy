@@ -821,7 +821,495 @@ object NodeSpec extends TestSuite {
       println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
     }
 
-    test("NexusNode and AdapterNode "){
+    test(" SourceNode && SinkNode resolveStar"){
+      implicit val p = Parameters.empty
+
+      case class CustomSourceNodeParams(width: Int)
+
+      case class CustomSinkNodeParams(width: Int)
+
+      case class CustomNodeEdgeParams(width: Int)
+
+      class CustomNodeImp extends SimpleNodeImp[CustomSourceNodeParams, CustomSinkNodeParams, CustomNodeEdgeParams, UInt] {
+        def edge(pd: CustomSourceNodeParams, pu: CustomSinkNodeParams, p: Parameters, sourceInfo: SourceInfo) = {
+          if (pd.width < pu.width) CustomNodeEdgeParams(pd.width) else CustomNodeEdgeParams(pu.width)
+        }
+        def bundle(e: CustomNodeEdgeParams) = UInt(e.width.W)
+        def render(e: CustomNodeEdgeParams) = RenderedEdge("blue", s"width = ${e.width}")
+        override def mixO(pd: CustomSourceNodeParams, node: OutwardNode[CustomSourceNodeParams, CustomSinkNodeParams, UInt]): CustomSourceNodeParams =
+          pd
+        override def mixI(pu: CustomSinkNodeParams, node: InwardNode[CustomSourceNodeParams, CustomSinkNodeParams, UInt]): CustomSinkNodeParams =
+          pu
+      }
+
+      /** node for [[AdderDriver]] (source) */
+      class AdderDriverNode(widths: Seq[CustomSourceNodeParams])(implicit valName: sourcecode.Name)
+        extends SourceNode(new CustomNodeImp)(widths)
+
+      /** node for [[AdderMonitor]] (sink) */
+      class AdderMonitorNode(width: Seq[CustomSinkNodeParams])(implicit valName: sourcecode.Name)
+        extends SinkNode(new CustomNodeImp)(width)
+
+      /** node for [[AdderReg]] (Adapter) */
+      class AdderAdapterNode(dFn: CustomSourceNodeParams => CustomSourceNodeParams,
+                             uFn: CustomSinkNodeParams => CustomSinkNodeParams)(implicit valName: sourcecode.Name)
+        extends AdapterNode(new CustomNodeImp)(dFn, uFn)
+
+      /** driver (source)
+        * drives one random number on multiple outputs */
+      class AdderDriver(width: Int, numOutputs: Int)(implicit p: Parameters) extends LazyModule {
+        val node = new AdderDriverNode(Seq.fill(numOutputs)(CustomSourceNodeParams(width)))
+
+        lazy val module = new LazyModuleImp(this) {
+          // check that node parameters converge after negotiation
+          val negotiatedWidths = node.edges.out.map(_.width)
+          require(negotiatedWidths.forall(_ == negotiatedWidths.head), "outputs must all have agreed on same width")
+          val finalWidth = negotiatedWidths.head
+
+          // generate random addend (notice the use of the negotiated width)
+          val randomAddend = FibonacciLFSR.maxPeriod(finalWidth)
+
+          // drive signals
+          node.out.foreach { case (addend, _) => addend := randomAddend }
+        }
+        override lazy val desiredName = "AdderDriver"
+      }
+
+      /** monitor (sink) */
+      class AdderMonitor(width: Int, numOperands: Int)(implicit p: Parameters) extends LazyModule {
+        val nodeSeq = Seq.fill(numOperands) { new AdderMonitorNode(Seq(CustomSinkNodeParams(width))) }
+        lazy val module = new LazyModuleImp(this) {
+        }
+        override lazy val desiredName = "AdderMonitor"
+      }
+
+      /** top-level connector */
+      class AdderTestHarness()(implicit p: Parameters) extends LazyModule {
+        val numOperands = 1
+        /**
+        case 0 : sink node := source node
+         */
+        val drivers_0 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 1)) }
+        // 8 will be the upward-traveling width from our monitor
+        val monitor_0 = LazyModule(new AdderMonitor(width = 4, numOperands = numOperands))
+        drivers_0.zip(monitor_0.nodeSeq).foreach { case (driver, monitorNode) => monitorNode := driver.node }
+        /**
+        case 1 : sink node :=* source node
+          */
+        val drivers_1 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 1)) }
+        // 8 will be the upward-traveling width from our monitor
+        val monitor_1 = LazyModule(new AdderMonitor(width = 4, numOperands = numOperands))
+        drivers_1.zip(monitor_1.nodeSeq).foreach { case (driver, monitorNode) => monitorNode :=* driver.node }
+
+        /**
+        case 2 : sink node :*= source node
+          */
+        val drivers_2 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 1)) }
+        // 8 will be the upward-traveling width from our monitor
+        val monitor_2 = LazyModule(new AdderMonitor(width = 4, numOperands = numOperands))
+        drivers_2.zip(monitor_2.nodeSeq).foreach { case (driver, monitorNode) => monitorNode :*= driver.node }
+
+        /**
+        case 3 : sink node :*=* source node
+          */
+        val drivers_3 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 1)) }
+        // 8 will be the upward-traveling width from our monitor
+        val monitor_3 = LazyModule(new AdderMonitor(width = 4, numOperands = numOperands))
+        drivers_3.zip(monitor_3.nodeSeq).foreach { case (driver, monitorNode) => monitorNode :*=* driver.node }
+
+        lazy val module = new LazyModuleImp(this) {
+        }
+
+        override lazy val desiredName = "AdderTestHarness"
+      }
+      val TopLM=LazyModule(new AdderTestHarness()(Parameters.empty))
+      val verilog = chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module)
+      //println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      //TODO: why the verilog code generated by this top module have no detail , just clock and reset signals
+      println(s"```verilog\n$verilog```")
+      /**
+      test source&sink  node resolveStar
+
+        Source : resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int)
+        = (iStar , oStar) = (0, po.size - oKnown)
+        there are two cases :
+        1. oStars == 0 , require (po.size == oKnown) , so (iStar , oStar) = (0, 0)
+        2. oStars > 0  , (iStar , oStar) = (0, po.size - oKnown)
+
+        Sink : resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int)
+        = (iStar , oStar) = (pi.size - iKnown, 0)
+        there are two cases :
+        1. iStars == 0 , require (pi.size == iKnown) , so (iStar , oStar) = (0, 0)
+        2. iStars > 0  , (iStar , oStar) = (pi.size - iKnown, 0)
+        */
+      //utest.assert(TopLM.drivers.head.node.iStar == 0)
+      //utest.assert(TopLM.drivers.head.node.oStar == 0)
+      //utest.assert(TopLM.drivers.last.node.iStar == 0)
+      //utest.assert(TopLM.drivers.last.node.oStar == 0)
+      /**
+        * test case 0 : sink node := source node
+        */
+      utest.assert(TopLM.drivers_0.head.node.iStar == 0)
+      utest.assert(TopLM.drivers_0.head.node.oStar == 0)
+
+      utest.assert(TopLM.monitor_0.nodeSeq.head.iStar == 0)
+      utest.assert(TopLM.monitor_0.nodeSeq.head.oStar == 0)
+      /**
+        * test case 1: sink node :=* source node
+        * sourceNode.oStars can only be 0 or 1,so according oStar can only be 0 or 1
+        */
+      utest.assert(TopLM.drivers_1.head.node.iStar == 0)
+      utest.assert(TopLM.drivers_1.head.node.oStar == 1)
+
+      utest.assert(TopLM.monitor_1.nodeSeq.head.iStar == 0)
+      utest.assert(TopLM.monitor_1.nodeSeq.head.oStar == 0)
+      /**
+        * test case 2: sink node :*= source node
+        * sinkNode.iStars can only be 0 or 1,so according iStar can only be 0 or 1
+        */
+      utest.assert(TopLM.drivers_2.head.node.iStar == 0)
+      utest.assert(TopLM.drivers_2.head.node.oStar == 0)
+
+      utest.assert(TopLM.monitor_2.nodeSeq.head.iStar == 1)
+      utest.assert(TopLM.monitor_2.nodeSeq.head.oStar == 0)
+      /**
+        * test case 3: sink node :*=* source node
+        * bind flex
+        */
+      utest.assert(TopLM.drivers_3.head.node.iStar == 0)
+      utest.assert(TopLM.drivers_3.head.node.oStar == 0)
+
+      utest.assert(TopLM.monitor_3.nodeSeq.head.iStar == 0)
+      utest.assert(TopLM.monitor_3.nodeSeq.head.oStar == 0)
+    }
+
+    test(" AdapterNode resolveStar"){
+      implicit val p = Parameters.empty
+
+      case class CustomSourceNodeParams(width: Int)
+
+      case class CustomSinkNodeParams(width: Int)
+
+      case class CustomNodeEdgeParams(width: Int)
+
+      class CustomNodeImp extends SimpleNodeImp[CustomSourceNodeParams, CustomSinkNodeParams, CustomNodeEdgeParams, UInt] {
+        def edge(pd: CustomSourceNodeParams, pu: CustomSinkNodeParams, p: Parameters, sourceInfo: SourceInfo) = {
+          if (pd.width < pu.width) CustomNodeEdgeParams(pd.width) else CustomNodeEdgeParams(pu.width)
+        }
+        def bundle(e: CustomNodeEdgeParams) = UInt(e.width.W)
+        def render(e: CustomNodeEdgeParams) = RenderedEdge("blue", s"width = ${e.width}")
+        override def mixO(pd: CustomSourceNodeParams, node: OutwardNode[CustomSourceNodeParams, CustomSinkNodeParams, UInt]): CustomSourceNodeParams =
+          pd
+        override def mixI(pu: CustomSinkNodeParams, node: InwardNode[CustomSourceNodeParams, CustomSinkNodeParams, UInt]): CustomSinkNodeParams =
+          pu
+      }
+
+      /** node for [[AdderDriver]] (source) */
+      class AdderDriverNode(widths: Seq[CustomSourceNodeParams])(implicit valName: sourcecode.Name)
+        extends SourceNode(new CustomNodeImp)(widths)
+
+      /** node for [[AdderMonitor]] (sink) */
+      class AdderMonitorNode(width: Seq[CustomSinkNodeParams])(implicit valName: sourcecode.Name)
+        extends SinkNode(new CustomNodeImp)(width)
+
+      /** node for [[AdderReg]] (Adapter) */
+      class AdderAdapterNode(dFn: CustomSourceNodeParams => CustomSourceNodeParams,
+                             uFn: CustomSinkNodeParams => CustomSinkNodeParams)(implicit valName: sourcecode.Name)
+        extends AdapterNode(new CustomNodeImp)(dFn, uFn)
+
+      /** driver (source)
+        * drives one random number on multiple outputs */
+      class AdderDriver(width: Int, numOutputs: Int)(implicit p: Parameters) extends LazyModule {
+        val node = new AdderDriverNode(Seq.fill(numOutputs)(CustomSourceNodeParams(width)))
+
+        lazy val module = new LazyModuleImp(this) {
+          // check that node parameters converge after negotiation
+          val negotiatedWidths = node.edges.out.map(_.width)
+          require(negotiatedWidths.forall(_ == negotiatedWidths.head), "outputs must all have agreed on same width")
+          val finalWidth = negotiatedWidths.head
+
+          // generate random addend (notice the use of the negotiated width)
+          val randomAddend = FibonacciLFSR.maxPeriod(finalWidth)
+
+          // drive signals
+          node.out.foreach { case (addend, _) => addend := randomAddend }
+        }
+        override lazy val desiredName = "AdderDriver"
+      }
+
+      /** monitor (sink) */
+      class AdderMonitor(width: Int, numOperands: Int)(implicit p: Parameters) extends LazyModule {
+        val nodeSeq = Seq.fill(numOperands) { new AdderMonitorNode(Seq(CustomSinkNodeParams(width))) }
+        lazy val module = new LazyModuleImp(this) {
+        }
+        override lazy val desiredName = "AdderMonitor"
+      }
+
+      class AdderReg(implicit p: Parameters) extends LazyModule {
+        val nodeSumAdapter = new AdderAdapterNode(
+          {case dps:CustomSourceNodeParams => dps},
+          {case ups:CustomSinkNodeParams => ups}
+        )
+        lazy val module = new LazyModuleImp(this) {
+          (nodeSumAdapter.in zip nodeSumAdapter.out) foreach { case ((in, _), (out, _)) =>
+            out := RegNext(in) }
+        }
+
+        override lazy val desiredName = "AdderMonitor"
+      }
+
+      /** top-level connector */
+      class AdderTestHarness()(implicit p: Parameters) extends LazyModule {
+        val numOperands = 1
+        /**
+        case 0 : sink node := adapter node := source node
+          */
+        val drivers_0 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 1)) }
+        // 8 will be the upward-traveling width from our monitor
+        val monitor_0 = LazyModule(new AdderMonitor(width = 4, numOperands = numOperands))
+        val Register_0 = LazyModule(new AdderReg)
+        drivers_0.zip(monitor_0.nodeSeq).foreach { case (driver, monitorNode) => monitorNode := Register_0.nodeSumAdapter := driver.node }
+        /**
+        case 1 : sink node := adapter node :*=  source node
+          */
+        val drivers_1 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 1)) }
+        // 8 will be the upward-traveling width from our monitor
+        val monitor_1 = LazyModule(new AdderMonitor(width = 4, numOperands = numOperands))
+        val Register_1 = LazyModule(new AdderReg)
+        drivers_1.zip(monitor_1.nodeSeq).foreach { case (driver, monitorNode) => monitorNode := Register_1.nodeSumAdapter :*= driver.node }
+
+        /**
+        case 2 : sink node :=* adapter node :=  source node
+          */
+        val drivers_2 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 1)) }
+        // 8 will be the upward-traveling width from our monitor
+        val monitor_2 = LazyModule(new AdderMonitor(width = 4, numOperands = numOperands))
+        val Register_2 = LazyModule(new AdderReg)
+        drivers_2.zip(monitor_2.nodeSeq).foreach { case (driver, monitorNode) => monitorNode :=* Register_2.nodeSumAdapter := driver.node }
+        /**
+        case 3 : sink node :=* adapter node :*=  source node
+        ERROR : require(oStars + iStars <= 1)
+          */
+
+        lazy val module = new LazyModuleImp(this) {
+        }
+
+        override lazy val desiredName = "AdderTestHarness"
+      }
+      val TopLM=LazyModule(new AdderTestHarness()(Parameters.empty))
+      val verilog = chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module)
+      //println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      //TODO: why the verilog code generated by this top module have no detail , just clock and reset signals
+      println(s"```verilog\n$verilog```")
+      /**
+      test adapter  node resolveStar
+        Adapter : resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int) = (iStar , oStar)
+        there are three cases :
+        0. iStars == 1 && oStars == 1,  (0, iKnown - oKnown)
+        1. iStars == 1 && oStars == 0,  (oKnown - iKnown, 0)
+        2. iStars == 0 && oStars == 0 , (0, 0)
+        */
+      /**
+        * test case 0 : sink node := adapter node :=  source node
+        */
+      utest.assert(TopLM.Register_0.nodeSumAdapter.iStar == 0)
+      utest.assert(TopLM.Register_0.nodeSumAdapter.oStar == 0)
+      /**
+        * test case 1: sink node := adapter node :*=  source node
+        */
+      utest.assert(TopLM.Register_1.nodeSumAdapter.iStar == 1)
+      utest.assert(TopLM.Register_1.nodeSumAdapter.oStar == 0)
+      /**
+        * test case 2: sink node :=* adapter node :=  source node
+        */
+      utest.assert(TopLM.Register_2.nodeSumAdapter.iStar == 0)
+      utest.assert(TopLM.Register_2.nodeSumAdapter.oStar == 1)
+    }
+
+    test("NexusNode resolveStar"){
+      implicit val p = Parameters.empty
+
+      case class CustomSourceNodeParams(width: Int)
+
+      case class CustomSinkNodeParams(width: Int)
+
+      case class CustomNodeEdgeParams(width: Int)
+
+      class CustomNodeImp extends SimpleNodeImp[CustomSourceNodeParams, CustomSinkNodeParams, CustomNodeEdgeParams, UInt] {
+        def edge(pd: CustomSourceNodeParams, pu: CustomSinkNodeParams, p: Parameters, sourceInfo: SourceInfo) = {
+          if (pd.width < pu.width) CustomNodeEdgeParams(pd.width) else CustomNodeEdgeParams(pu.width)
+        }
+        def bundle(e: CustomNodeEdgeParams) = UInt(e.width.W)
+        def render(e: CustomNodeEdgeParams) = RenderedEdge("blue", s"width = ${e.width}")
+        override def mixO(pd: CustomSourceNodeParams, node: OutwardNode[CustomSourceNodeParams, CustomSinkNodeParams, UInt]): CustomSourceNodeParams =
+          pd
+        override def mixI(pu: CustomSinkNodeParams, node: InwardNode[CustomSourceNodeParams, CustomSinkNodeParams, UInt]): CustomSinkNodeParams =
+          pu
+      }
+
+      /** node for [[AdderDriver]] (source) */
+      class AdderDriverNode(widths: Seq[CustomSourceNodeParams])(implicit valName: sourcecode.Name)
+        extends SourceNode(new CustomNodeImp)(widths)
+
+      /** node for [[AdderMonitor]] (sink) */
+      class AdderMonitorNode(width: CustomSinkNodeParams)(implicit valName: sourcecode.Name)
+        extends SinkNode(new CustomNodeImp)(Seq(width))
+
+      /** node for [[Adder]] (nexus) */
+      class AdderNode(dFn: Seq[CustomSourceNodeParams] => CustomSourceNodeParams,
+                      uFn: Seq[CustomSinkNodeParams] => CustomSinkNodeParams)(implicit valName: sourcecode.Name)
+        extends NexusNode(new CustomNodeImp)(dFn, uFn)
+
+      /** adder DUT (nexus) */
+      class Adder(implicit p: Parameters) extends LazyModule {
+        val node = new AdderNode (
+          { case dps: Seq[CustomSourceNodeParams] =>
+            require(dps.forall(dp => dp.width == dps.head.width), "inward, downward adder widths must be equivalent")
+            dps.head
+          },
+          { case ups: Seq[CustomSinkNodeParams] =>
+            require(ups.forall(up => up.width == ups.head.width), "outward, upward adder widths must be equivalent")
+            ups.head
+          }
+        )
+
+        lazy val module = new LazyModuleImp(this) {
+          require(node.in.size >= 2)
+          node.out.head._1 := node.in.unzip._1.reduce(_ + _)
+        }
+        override lazy val desiredName = "Adder"
+      }
+
+      /** driver (source)
+        * drives one random number on multiple outputs */
+      class AdderDriver(width: Int, numOutputs: Int)(implicit p: Parameters) extends LazyModule {
+        val node = new AdderDriverNode(Seq.fill(numOutputs)(CustomSourceNodeParams(width)))
+
+        lazy val module = new LazyModuleImp(this) {
+          // check that node parameters converge after negotiation
+          val negotiatedWidths = node.edges.out.map(_.width)
+          require(negotiatedWidths.forall(_ == negotiatedWidths.head), "outputs must all have agreed on same width")
+          val finalWidth = negotiatedWidths.head
+
+          // generate random addend (notice the use of the negotiated width)
+          val randomAddend = FibonacciLFSR.maxPeriod(finalWidth)
+
+          // drive signals
+          node.out.foreach { case (addend, _) => addend := randomAddend }
+        }
+
+        override lazy val desiredName = "AdderDriver"
+      }
+
+      /** monitor (sink) */
+      class AdderMonitor(width: Int, numOperands: Int)(implicit p: Parameters) extends LazyModule {
+        val nodeSeq = Seq.fill(numOperands) { new AdderMonitorNode(CustomSinkNodeParams(width)) }
+        val nodeSum = new AdderMonitorNode(CustomSinkNodeParams(width))
+
+        lazy val module = new LazyModuleImp(this) {
+          val io = IO(new Bundle {
+            val error = Output(Bool())
+          })
+          // print operation
+          printf(nodeSeq.map(node => p"${node.in.head._1}").reduce(_ + p" + " + _) + p" = ${nodeSum.in.head._1}")
+          // basic correctness checking
+          io.error := nodeSum.in.head._1 =/= nodeSeq.map(_.in.head._1).reduce(_ + _)
+        }
+
+        override lazy val desiredName = "AdderMonitor"
+      }
+
+      /** top-level connector */
+      class AdderTestHarness()(implicit p: Parameters) extends LazyModule {
+        val numOperands = 2
+
+        /**
+        case 0 : sink node := nexus node :=  source node
+          */
+        val adder_0 = LazyModule(new Adder)
+        val drivers_0 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 4, numOutputs = 2)) }
+        val monitor_0 = LazyModule(new AdderMonitor(width = 2, numOperands = numOperands))
+        // create edges via binding operators between nodes in order to define a complete graph
+        drivers_0.foreach{ driver => adder_0.node := driver.node }
+        drivers_0.zip(monitor_0.nodeSeq).foreach { case (driver, monitorNode) => monitorNode := driver.node }
+        monitor_0.nodeSum := adder_0.node
+        /**
+        case 1 : sink node := nexus node :*=  source node
+          */
+        val adder_1 = LazyModule(new Adder)
+        val drivers_1 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 4, numOutputs = 2)) }
+        val monitor_1 = LazyModule(new AdderMonitor(width = 2, numOperands = numOperands))
+        // create edges via binding operators between nodes in order to define a complete graph
+        drivers_1.foreach{ driver => adder_1.node :*= driver.node }
+        drivers_1.zip(monitor_1.nodeSeq).foreach { case (driver, monitorNode) => monitorNode := driver.node }
+        monitor_1.nodeSum := adder_1.node
+        /**
+        case 2 : sink node :=* nexus node :=  source node
+          */
+        val adder_2 = LazyModule(new Adder)
+        val drivers_2 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 4, numOutputs = 2)) }
+        val monitor_2 = LazyModule(new AdderMonitor(width = 2, numOperands = numOperands))
+        // create edges via binding operators between nodes in order to define a complete graph
+        drivers_2.foreach{ driver => adder_2.node := driver.node }
+        drivers_2.zip(monitor_2.nodeSeq).foreach { case (driver, monitorNode) => monitorNode := driver.node }
+        monitor_2.nodeSum :=* adder_2.node
+        /**
+        case 3 : sink node :=* nexus node :*=  source node
+          */
+          //TODO: there may be a question , in case 3 ,
+          // nexusNode.iKnow == 0 && nexusNode.oKnow == 0 => nexusNode.iStar==0 && nexusNode.oStar==0
+          // so like that  nexusNode is nothing in a bind like that
+        //val adder_3 = LazyModule(new Adder)
+        //val drivers_3 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 4, numOutputs = 2)) }
+        //val monitor_3 = LazyModule(new AdderMonitor(width = 2, numOperands = numOperands))
+        // create edges via binding operators between nodes in order to define a complete graph
+        //drivers_3.foreach{ driver => adder_3.node :*= driver.node }
+        //drivers_3.zip(monitor_3.nodeSeq).foreach { case (driver, monitorNode) => monitorNode := driver.node }
+        //monitor_3.nodeSum :=* adder_3.node
+
+        //TODO: why there is an ERROR :value io is not a member of diplomacy.lazymodule.LazyModuleImp
+        lazy val module = new LazyModuleImp(this) {
+          //when(monitor.module.io.error) {
+          //  printf("something went wrong")
+          //}
+        }
+
+        override lazy val desiredName = "AdderTestHarness"
+      }
+      val TopLM=LazyModule(new AdderTestHarness()(Parameters.empty))
+
+      val verilog = chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module)
+      //println(TopLM.monitor.module.io.error)
+      println(s"```verilog\n$verilog```")
+      /**
+      test nexus  node resolveStar
+        Adapter : resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int) = (iStar , oStar)
+        if (iKnown == 0 && oKnown == 0) (0, 0) else (1, 1)
+        there are four cases :
+        */
+      /**
+        * test case 0 : sink node := nexus node :=  source node
+        */
+      utest.assert(TopLM.adder_0.node.iStar == 1)
+      utest.assert(TopLM.adder_0.node.oStar == 1)
+      /**
+        * test case 1: sink node := nexus node :*=  source node
+        */
+      utest.assert(TopLM.adder_1.node.iStar == 1)
+      utest.assert(TopLM.adder_1.node.oStar == 1)
+      /**
+        * test case 2: sink node :=* nexus node :=  source node
+        */
+      utest.assert(TopLM.adder_2.node.iStar == 1)
+      utest.assert(TopLM.adder_2.node.oStar == 1)
+      /**
+        * test case 3: sink node :=* nexus node :*=  source node
+        */
+      //utest.assert(TopLM.adder_3.node.iStar == 1)
+      //utest.assert(TopLM.adder_3.node.oStar == 1)
+    }
+
+    test("example add"){
       implicit val p = Parameters.empty
 
       case class CustomSourceNodeParams(width: Int)
@@ -929,6 +1417,8 @@ object NodeSpec extends TestSuite {
           (nodeSumAdapter.in zip nodeSumAdapter.out) foreach { case ((in, _), (out, _)) =>
           out := RegNext(in) }
         }
+
+        override lazy val desiredName = "AdderMonitor"
       }
 
       /** top-level connector */
@@ -941,6 +1431,12 @@ object NodeSpec extends TestSuite {
         val monitor = LazyModule(new AdderMonitor(width = 8, numOperands = numOperands))
         val Register = LazyModule(new AdderReg)
 
+        /**Hint:  bind like
+          * a:=* b(nexus node)
+          * b:*= c(source node)
+          * there is a ERROR with c node:  po.size =/= oKnown
+          * because c.oKnown+=b.iStar   and b.iStar = 0 in this case.
+          */
         // create edges via binding operators between nodes in order to define a complete graph
         drivers.foreach{ driver => adder.node := driver.node }
 
@@ -948,7 +1444,7 @@ object NodeSpec extends TestSuite {
         //monitor.nodeSum := adder.node
 
         Register.nodeSumAdapter := adder.node
-        monitor.nodeSum := Register.nodeSumAdapter
+        monitor.nodeSum :=* Register.nodeSumAdapter
 
         //TODO: why there is an ERROR :value io is not a member of diplomacy.lazymodule.LazyModuleImp
         lazy val module = new LazyModuleImp(this) {
@@ -967,6 +1463,20 @@ object NodeSpec extends TestSuite {
       val verilog = chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module)
       //println(TopLM.monitor.module.io.error)
       println(s"```verilog\n$verilog```")
+      /**
+      test source node resolveStar
+
+      resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int)
+      = (iStar , oStar) = (0, po.size - oKnown)
+        there are two cases :
+        1. oStars == 0 , require (po.size == oKnown) , so (iStar , oStar) = (0, 0)
+        2. oStars > 0  , (iStar , oStar) = (0, po.size - oKnown)
+       */
+      println(TopLM.adder.node.iStar)
+      println(TopLM.adder.node.oStar)
+
+      println(TopLM.Register.nodeSumAdapter.iStar)
+      println(TopLM.Register.nodeSumAdapter.oStar)
     }
 
   }
