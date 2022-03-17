@@ -1126,6 +1126,135 @@ object NodeSpec extends TestSuite {
       utest.assert(TopLM.Register_2.nodeSumAdapter.oStar == 1)
     }
 
+    test(" JunctionNode resolveStar"){
+      implicit val p = Parameters.empty
+
+      case class CustomSourceNodeParams(width: Int)
+
+      case class CustomSinkNodeParams(width: Int)
+
+      case class CustomNodeEdgeParams(width: Int)
+
+      class CustomNodeImp extends SimpleNodeImp[CustomSourceNodeParams, CustomSinkNodeParams, CustomNodeEdgeParams, UInt] {
+        def edge(pd: CustomSourceNodeParams, pu: CustomSinkNodeParams, p: Parameters, sourceInfo: SourceInfo) = {
+          if (pd.width < pu.width) CustomNodeEdgeParams(pd.width) else CustomNodeEdgeParams(pu.width)
+        }
+        def bundle(e: CustomNodeEdgeParams) = UInt(e.width.W)
+        def render(e: CustomNodeEdgeParams) = RenderedEdge("blue", s"width = ${e.width}")
+        override def mixO(pd: CustomSourceNodeParams, node: OutwardNode[CustomSourceNodeParams, CustomSinkNodeParams, UInt]): CustomSourceNodeParams =
+          pd
+        override def mixI(pu: CustomSinkNodeParams, node: InwardNode[CustomSourceNodeParams, CustomSinkNodeParams, UInt]): CustomSinkNodeParams =
+          pu
+      }
+
+      /** node for [[AdderDriver]] (source) */
+      class AdderDriverNode(widths: Seq[CustomSourceNodeParams])(implicit valName: sourcecode.Name)
+        extends SourceNode(new CustomNodeImp)(widths)
+
+      /** node for [[AdderMonitor]] (sink) */
+      class AdderMonitorNode(width: Seq[CustomSinkNodeParams])(implicit valName: sourcecode.Name)
+        extends SinkNode(new CustomNodeImp)(width)
+
+      /** node for [[AdderJunction]] (Junction) */
+      class AdderJunctionNode(dFn: Seq[CustomSourceNodeParams] => Seq[CustomSourceNodeParams],
+                      uFn: Seq[CustomSinkNodeParams] => Seq[CustomSinkNodeParams])(implicit valName: sourcecode.Name)
+        extends JunctionNode(new CustomNodeImp)(dFn, uFn)
+
+      /** driver (source)
+        * drives one random number on multiple outputs */
+      class AdderDriver(width: Int, numOutputs: Int)(implicit p: Parameters) extends LazyModule {
+        val node = new AdderDriverNode(Seq.fill(numOutputs)(CustomSourceNodeParams(width)))
+
+        lazy val module = new LazyModuleImp(this) {
+          // check that node parameters converge after negotiation
+          val negotiatedWidths = node.edges.out.map(_.width)
+          require(negotiatedWidths.forall(_ == negotiatedWidths.head), "outputs must all have agreed on same width")
+          val finalWidth = negotiatedWidths.head
+
+          // generate random addend (notice the use of the negotiated width)
+          val randomAddend = FibonacciLFSR.maxPeriod(finalWidth)
+
+          // drive signals
+          node.out.foreach { case (addend, _) => addend := randomAddend }
+        }
+        override lazy val desiredName = "AdderDriver"
+      }
+
+      /** monitor (sink) */
+      class AdderMonitor(width: Int, numOperands: Int, numOutputs: Int)(implicit p: Parameters) extends LazyModule {
+        val nodeSeq = Seq.fill(numOperands) { new AdderMonitorNode(Seq.fill(numOutputs)(CustomSinkNodeParams(width))) }
+        lazy val module = new LazyModuleImp(this) {
+        }
+        override lazy val desiredName = "AdderMonitor"
+      }
+
+      /** junction  */
+      class AdderJunction(implicit p: Parameters) extends LazyModule {
+        val junctionNode = new AdderJunctionNode (
+          { case dps: Seq[CustomSourceNodeParams] =>
+            require(dps.forall(dp => dp.width == dps.head.width), "inward, downward adder widths must be equivalent")
+            dps
+          },
+          { case ups: Seq[CustomSinkNodeParams] =>
+            require(ups.forall(up => up.width == ups.head.width), "outward, upward adder widths must be equivalent")
+            ups
+          }
+        )
+        lazy val module = new LazyModuleImp(this) {
+        }
+        override lazy val desiredName = "AdderJunction"
+      }
+
+
+      /** top-level connector */
+      class AdderTestHarness()(implicit p: Parameters) extends LazyModule {
+        val numOperands = 1
+        /**
+        {{{   case 0 :
+          *   val jbar = LazyModule(new JBar)
+          *   slave1.node := jbar.node
+          *   slave2.node := jbar.node
+          *   extras.node :=* jbar.node
+          *   jbar.node :*= masters1.node
+          *   jbar.node :*= masters2.node
+          * }}}
+          */
+          //TODO: ERROR[module AdderJunction]  Reference bundleOut_2 is not fully initialized. : bundleOut_2 <= VOID
+          // why the edge negotiated can generate according bundle
+        val masters_0_1 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 2)) }
+        val masters_0_2 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 2)) }
+        // 8 will be the upward-traveling width from our monitor
+        val slave_0_1 = LazyModule(new AdderMonitor(width = 2, numOperands = numOperands, numOutputs = 1))
+        val slave_0_2 = LazyModule(new AdderMonitor(width = 2, numOperands = numOperands, numOutputs = 1))
+        val extras_0 = LazyModule(new AdderMonitor(width = 2, numOperands = numOperands, numOutputs = 2))
+
+        val jbar_0 = LazyModule(new AdderJunction)
+        slave_0_1.nodeSeq.head := jbar_0.junctionNode
+        slave_0_2.nodeSeq.head := jbar_0.junctionNode
+        extras_0.nodeSeq.head :=* jbar_0.junctionNode
+        jbar_0.junctionNode :*= masters_0_1.head.node
+        jbar_0.junctionNode :*= masters_0_2.head.node
+
+        lazy val module = new LazyModuleImp(this) {
+        }
+
+        override lazy val desiredName = "AdderTestHarness"
+      }
+      val TopLM=LazyModule(new AdderTestHarness()(Parameters.empty))
+      val verilog = chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module)
+      //println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      //TODO: why the verilog code generated by this top module have no detail , just clock and reset signals
+      println(s"```verilog\n$verilog```")
+      /**
+        * test case 0
+        */
+      println(TopLM.jbar_0.junctionNode.iStar)
+      println(TopLM.jbar_0.junctionNode.oStar)
+      println(TopLM.jbar_0.junctionNode.uRatio)
+      println(TopLM.jbar_0.junctionNode.dRatio)
+      println(TopLM.jbar_0.junctionNode.multiplicity)
+    }
+
     test("NexusNode resolveStar"){
       implicit val p = Parameters.empty
 
