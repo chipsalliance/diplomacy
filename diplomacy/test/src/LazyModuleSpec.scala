@@ -93,7 +93,8 @@ object LazyModuleSpec extends TestSuite {
       //test getChildren
       utest.assert(outerLM.innerLM.inInnerLM.getChildren.isEmpty)
       utest.assert(outerLM.innerLM.getChildren.contains(outerLM.innerLM.inInnerLM))
-      //test getchild function can only get child lazymodule ,not grandchild
+      /**test getchild function can only get child lazymodule ,not grandchild
+        */
       utest.assert(outerLM.getChildren.contains(outerLM.innerLM))
       utest.assert(outerLM.getChildren.contains(outerLM.Inner_otherLM))
       utest.assert(outerLM.children.contains(outerLM.innerLM))
@@ -161,7 +162,7 @@ object LazyModuleSpec extends TestSuite {
       val demoLM = LazyModule(new DemoLazyModule)
       //test function <line> indicate the line of instantiating if lazymoduel
       //function line return a string , which line to define the LazyModule
-      utest.assert(demoLM.line.contains("161:30"))
+      utest.assert(demoLM.line.contains("162:30"))
     }
 
     test("var nodes and def getNodes : test how to get nodes in a lazymodule instantiste ") {
@@ -264,15 +265,15 @@ object LazyModuleSpec extends TestSuite {
       val lm = LazyModule(new DemoLazyModule)
       chisel3.stage.ChiselStage.elaborate(lm.module)
       //test var info and getInfo :  return the line to wrapper a new Lazymodue class
-      utest.assert(lm.getInfo.makeMessage(c => c.toString).contains("264:26"))
+      utest.assert(lm.getInfo.makeMessage(c => c.toString).contains("265:26"))
 
       val sourceLineInfo = lm.info
       sourceLineInfo match{
         case n : SourceLine => {
-          utest.assert(n.line == 264)
+          utest.assert(n.line == 265)
           utest.assert(n.col  == 26)
           utest.assert(n.filename == "LazyModuleSpec.scala")
-          utest.assert(n.makeMessage(c => c) == "@[LazyModuleSpec.scala 264:26]")
+          utest.assert(n.makeMessage(c => c) == "@[LazyModuleSpec.scala 265:26]")
         }
         case _ => println("Error :  LazyModule var info is not a SourceLine class !")
       }
@@ -280,10 +281,10 @@ object LazyModuleSpec extends TestSuite {
       val sourceLineGetInfo = lm.getInfo
       sourceLineGetInfo match{
         case n : SourceLine => {
-          utest.assert(n.line == 264)
+          utest.assert(n.line == 265)
           utest.assert(n.col  == 26)
           utest.assert(n.filename == "LazyModuleSpec.scala")
-          utest.assert(n.makeMessage(c => c) == "@[LazyModuleSpec.scala 264:26]")
+          utest.assert(n.makeMessage(c => c) == "@[LazyModuleSpec.scala 265:26]")
         }
         case _ => println("Error : LazyModule method getInfo is not a SourceLine class !")
       }

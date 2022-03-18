@@ -23,8 +23,6 @@ object BundleBridgeSpec extends TestSuite {
         val source = new DemoSource
         lazy val module = new LazyModuleImp(this) {
           val source_bundile = source.bundle
-          //TODO : why source_io can't be connected to a Unit value
-          //val source_io = source.makeIO("source_io")
           source_bundile := 4.U(32.W)
         }
       }
