@@ -328,7 +328,7 @@ object LazyModuleSpec extends TestSuite {
       utest.assert(lm.InLM.shouldBeInlined == true)
     }
 
-    test("def lazyModule.module.desiredName:Suggests instance name for [LazyModuleImpLike] module") {
+    test("test def lazyModule.module.desiredName:Suggests instance name for [LazyModuleImpLike] module") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -360,7 +360,7 @@ object LazyModuleSpec extends TestSuite {
       utest.assert(TopModule.module.desiredName.contains("LazyModule"))
     }
 
-    test("def lazyModule.module.dangles/auto") {
+    test("test def lazyModule.module.dangles/auto") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -392,7 +392,7 @@ object LazyModuleSpec extends TestSuite {
       utest.assert(TopModule.module.auto.elements.isEmpty)
     }
 
-    test("LazyModule can be defined with LazyRawModuleImp") {
+    test("test LazyModule can be defined with LazyRawModuleImp") {
       class DemoLazyModule(implicit p: Parameters) extends LazyModule {
         override lazy val module = new LazyRawModuleImp(this) {
           childClock := false.B.asClock
