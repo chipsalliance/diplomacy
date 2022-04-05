@@ -32,7 +32,7 @@ class diplomacy(val crossScalaVersion: String) extends CrossScalaModule with Sca
     (if (chisel3Module.isEmpty) Some(ivys.chisel3) else None) ++
     (if (cdeModule.isEmpty) Some(ivys.cde) else None)
 
-  object test extends Tests with TestModule.Utest with JacocoTestModule {
+  object test extends Tests with TestModule.Utest with JacocoTestModule with ScalafmtModule {
     def ivyDeps = Agg(ivys.utest)
   }
 
