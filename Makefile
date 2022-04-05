@@ -15,3 +15,4 @@ checkformat:
 
 test:
 	mill -i __.test
+	mill de.tobiasroeser.mill.jacoco.Jacoco/jacocoReportFull
