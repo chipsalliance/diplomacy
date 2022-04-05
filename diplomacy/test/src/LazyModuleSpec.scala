@@ -213,7 +213,7 @@ object LazyModuleSpec extends TestSuite {
           utest.assert(n.filename=="LazyModuleSpec.scala")
           utest.assert(n.makeMessage(c => c)=="@[LazyModuleSpec.scala 203:26]")
         }
-        case _ => println("Error:LazyModule var info is not a SourceLine class!")
+        case _ => throw new Exception("Error:LazyModule var info is not a SourceLine class!")
       }
 
       val sourceLineGetInfo = lm.getInfo
@@ -224,7 +224,7 @@ object LazyModuleSpec extends TestSuite {
           utest.assert(n.filename=="LazyModuleSpec.scala")
           utest.assert(n.makeMessage(c => c)=="@[LazyModuleSpec.scala 203:26]")
         }
-        case _ => println("Error:LazyModule method getInfo is not a SourceLine class!")
+        case _ => throw new Exception("Error:LazyModule method getInfo is not a SourceLine class!")
       }
     }
 
@@ -387,7 +387,7 @@ object LazyModuleSpec extends TestSuite {
         }
       }
       val TopModule = LazyModule(new TopLazyModule)
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopModule.module))
+      chisel3.stage.ChiselStage.emitSystemVerilog(TopModule.module)
       utest.assert(TopModule.module.dangles.isEmpty)
       utest.assert(TopModule.module.auto.elements.isEmpty)
     }
@@ -437,7 +437,7 @@ object LazyModuleSpec extends TestSuite {
         //there is no LazyModuleImp module
       }
       val TopModule = LazyModule(new TopLazyModule)
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopModule.module))
+      chisel3.stage.ChiselStage.emitSystemVerilog(TopModule.module)
       utest.assert(TopModule.module.dangles.isEmpty)
       utest.assert(TopModule.module.auto.elements.isEmpty)
     }
