@@ -205,6 +205,7 @@ trait InwardNode[DI, UI, BI <: Data] extends BaseNode {
     * preventing subsequent bindings from being created via [[iPush]].
     *
     * The bindings are each a tuple of:
+    * //todo : have some errors in the following line
     * - numeric index of this binding in the other end of [[OutwardNode]].
     * - [[OutwardNode]] on the other end of this binding.
     * - [[NodeBinding]] describing the type of binding.
@@ -315,6 +316,7 @@ trait OutwardNode[DO, UO, BO <: Data] extends BaseNode {
     * preventing subsequent bindings from being created via [[oPush]].
     *
     * The bindings are each a tuple of:
+    * //todo : have some errors in the following line
     * - numeric index of this binding in the other end of [[InwardNode]].
     * - [[InwardNode]] on the other end of this binding
     * - [[NodeBinding]] describing the type of binding

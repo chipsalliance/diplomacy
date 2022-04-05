@@ -29,7 +29,7 @@ case class HalfEdge(serial: Int, index: Int) extends Ordered[HalfEdge] {
   *
   * @param source  the source [[HalfEdge]] of this [[Dangle]], which captures the source [[BaseNode]] and the port `index` within that [[BaseNode]].
   * @param sink    sink [[HalfEdge]] of this [[Dangle]], which captures the sink [[BaseNode]] and the port `index` within that [[BaseNode]].
-  * @param flipped flip or not in [[AutoBundle.makeElements]]. If true this corresponds to `danglesOut`, if false it corresponds to `danglesIn`.
+  * @param flipped flip or not in [[AutoBundle.makeElements]]. If true this corresponds to `danglesIn`, if false it corresponds to `danglesOut`.
   * @param data    actual [[Data]] for the hardware connection.
   */
 case class Dangle(source: HalfEdge, sink: HalfEdge, flipped: Boolean, name: String, data: Data)

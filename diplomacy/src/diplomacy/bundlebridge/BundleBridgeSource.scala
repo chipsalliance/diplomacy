@@ -24,6 +24,7 @@ case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implici
   def makeIO(name: String): T = makeIO()(ValName(name))
 
   private var doneSink = false
+  // FIXME: p is not used here, get rid of it.
   def makeSink()(implicit p: Parameters) = {
     require(!doneSink, "Can only call makeSink() once")
     doneSink = true
