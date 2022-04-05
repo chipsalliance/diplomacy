@@ -3,9 +3,9 @@ import scalalib._
 import scalafmt._
 import publish._
 
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.1`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.10:0.1.4`
 import de.tobiasroeser.mill.vcs.version.VcsVersion
-import $ivy.`de.tototec::de.tobiasroeser.mill.jacoco_mill0.9:0.0.1`
+import $ivy.`de.tototec::de.tobiasroeser.mill.jacoco_mill0.10:0.0.1-4-205149`
 import de.tobiasroeser.mill.jacoco.JacocoTestModule
 
 object ivys {
