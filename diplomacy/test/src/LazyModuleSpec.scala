@@ -3,18 +3,14 @@ package diplomacy.unittest
 import chipsalliance.rocketchip.config.Parameters
 import chisel3._
 import chisel3.internal.sourceinfo.SourceLine
+import chisel3.stage.ChiselGeneratorAnnotation
 import diplomacy.bundlebridge.{BundleBridgeIdentityNode, BundleBridgeSink, BundleBridgeSource}
-import diplomacy.lazymodule.{
-  InModuleBody,
-  LazyModule,
-  LazyModuleImp,
-  LazyModuleImpLike,
-  LazyRawModuleImp,
-  LazyScope,
-  SimpleLazyModule
-}
+import diplomacy.lazymodule.{InModuleBody, LazyModule, LazyModuleImp, LazyModuleImpLike, LazyRawModuleImp, LazyScope, SimpleLazyModule}
 import diplomacy.lazymodule.ModuleValue
+
 import scala.util.matching.Regex
+import firrtl.analyses.InstanceKeyGraph
+import firrtl.analyses.InstanceKeyGraph.InstanceKey
 import utest._
 
 object LazyModuleSpec extends TestSuite {
@@ -229,13 +225,7 @@ object LazyModuleSpec extends TestSuite {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
       class DemoSource(implicit valName: sourcecode.Name) extends BundleBridgeSource[UInt](Some(genOption))
-      class SourceLazyModule(implicit p: Parameters) extends LazyModule {
-        val source = new DemoSource
-        val sink = source.makeSink()
-        lazy val module = new LazyModuleImp(this) {
-          source.bundle := 4.U
-        }
-      }
+
       class LazyScopeModule(implicit p: Parameters) extends LazyModule {
         val source = new DemoSource
         val sink = source.makeSink()
@@ -249,12 +239,32 @@ object LazyModuleSpec extends TestSuite {
           io.c := sink.bundle
         }
       }
+
+      class SourceLazyModule(implicit p: Parameters) extends LazyModule {
+        val source = new DemoSource
+        val sink = source.makeSink()
+        val lazyModuleInScope = LazyScope.apply[LazyModule]("myLazyScope", "moduleDesiredName")(LazyModule(new LazyScopeModule))(p)
+        lazy val module = new LazyModuleImp(this) {
+          source.bundle := 4.U
+        }
+      }
       val sourceModule = LazyModule(new SourceLazyModule)
-      // add a lazyScope same as sourceModule
-      val myScope = LazyScope.apply[LazyModule]("lazyScope", "SimpleLazyModule", None)(LazyModule(new LazyScopeModule))(p)
-      //chisel3.stage.ChiselStage.emitSystemVerilog(sourceModule.module)
-      //println(chisel3.stage.ChiselStage.emitSystemVerilog(myScope.module))
-      //utest.assert(myScope == sourceModule)
+      val firrtlCircuit = firrtl.Parser.parse(chisel3.stage.ChiselStage.emitFirrtl(sourceModule.module))
+      val graph = InstanceKeyGraph.apply(firrtlCircuit).graph
+      //println(graph.getVertices.map( v => v -> graph.getEdges(v)).toMap)
+      val TopGraph = graph.getVertices.map( v => v -> graph.getEdges(v))
+      //test graph -> (InstanceKey("parent.name","parent.module.name"),Set(InstanceKey("children","children.module.name")))
+      //println(TopGraph.head)
+      utest.assert(TopGraph.head == (InstanceKey("LazyModule_1","LazyModule_1"),Set(InstanceKey("myLazyScope","moduleDesiredName"))))
+      //println(TopGraph.tail.head)
+      utest.assert(TopGraph.tail.head == (InstanceKey("myLazyScope","moduleDesiredName"),Set(InstanceKey("lazyModuleInScope","LazyModule"))))
+      //println(TopGraph.tail.tail.head)
+      utest.assert(TopGraph.tail.tail.head == (InstanceKey("lazyModuleInScope","LazyModule"),Set()))
+
+      utest.assert(sourceModule.children.head.className == "SimpleLazyModule")
+      utest.assert(sourceModule.children.head.name == "myLazyScope")
+      utest.assert(sourceModule.children.head.children.head.className == "LazyModule")
+      utest.assert(sourceModule.children.head.children.head.name == "lazyModuleInScope")
     }
 
     test("test def wrapper") {
