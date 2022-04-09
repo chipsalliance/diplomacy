@@ -251,15 +251,27 @@ object LazyModuleSpec extends TestSuite {
       val sourceModule = LazyModule(new SourceLazyModule)
       val firrtlCircuit = firrtl.Parser.parse(chisel3.stage.ChiselStage.emitFirrtl(sourceModule.module))
       val graph = InstanceKeyGraph.apply(firrtlCircuit).graph
-      //println(graph.getVertices.map( v => v -> graph.getEdges(v)).toMap)
-      val TopGraph = graph.getVertices.map( v => v -> graph.getEdges(v))
+      // test the topGraph like following code
+      //
+      //                           LazyModule_1
+      //                                 *
+      //                               *   *
+      //                             *       *
+      //                           *           *
+      //                         *               *
+      //                 myLazyScope               None
+      //                       *
+      //                     *   *
+      //                   *       *
+      //      lazyModuleInScope     None
+      //              *
+      //              *
+      //            None
+      val topGraph = graph.getVertices.map( v => v -> graph.getEdges(v))
       //test graph -> (InstanceKey("parent.name","parent.module.name"),Set(InstanceKey("children","children.module.name")))
-      //println(TopGraph.head)
-      utest.assert(TopGraph.head == (InstanceKey("LazyModule_1","LazyModule_1"),Set(InstanceKey("myLazyScope","moduleDesiredName"))))
-      //println(TopGraph.tail.head)
-      utest.assert(TopGraph.tail.head == (InstanceKey("myLazyScope","moduleDesiredName"),Set(InstanceKey("lazyModuleInScope","LazyModule"))))
-      //println(TopGraph.tail.tail.head)
-      utest.assert(TopGraph.tail.tail.head == (InstanceKey("lazyModuleInScope","LazyModule"),Set()))
+      utest.assert(topGraph.head == (InstanceKey("LazyModule_1","LazyModule_1"),Set(InstanceKey("myLazyScope","moduleDesiredName"))))
+      utest.assert(topGraph.tail.head == (InstanceKey("myLazyScope","moduleDesiredName"),Set(InstanceKey("lazyModuleInScope","LazyModule"))))
+      utest.assert(topGraph.tail.tail.head == (InstanceKey("lazyModuleInScope","LazyModule"),Set()))
 
       utest.assert(sourceModule.children.head.className == "SimpleLazyModule")
       utest.assert(sourceModule.children.head.name == "myLazyScope")
@@ -420,8 +432,6 @@ object LazyModuleSpec extends TestSuite {
         val demo = LazyModule(new DemoLazyModule)
         chisel3.stage.ChiselStage.emitSystemVerilog(demo.module)
         test("demo can generate a simple verilog with invoking module") {
-          utest.assert(
-          )
           utest.assert(demo.name == "demo")
         }
       }
