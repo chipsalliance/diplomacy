@@ -5,7 +5,15 @@ import chisel3._
 import chisel3.internal.sourceinfo.SourceLine
 import chisel3.stage.ChiselGeneratorAnnotation
 import diplomacy.bundlebridge.{BundleBridgeIdentityNode, BundleBridgeSink, BundleBridgeSource}
-import diplomacy.lazymodule.{InModuleBody, LazyModule, LazyModuleImp, LazyModuleImpLike, LazyRawModuleImp, LazyScope, SimpleLazyModule}
+import diplomacy.lazymodule.{
+  InModuleBody,
+  LazyModule,
+  LazyModuleImp,
+  LazyModuleImpLike,
+  LazyRawModuleImp,
+  LazyScope,
+  SimpleLazyModule
+}
 import diplomacy.lazymodule.ModuleValue
 
 import scala.util.matching.Regex
@@ -207,7 +215,7 @@ object LazyModuleSpec extends TestSuite {
       // test var info and getInfo: return the line to wrapper a new LazyModule class
       val infoKeyValPattern: Regex = "[@][\\[]([0-9a-zA-Z-. ]+) ([0-9]+):([0-9]+)[\\]]".r
       val infoString = lm.getInfo.makeMessage(c => c.toString)
-      val sourceLineInfo =lm.getInfo
+      val sourceLineInfo = lm.getInfo
 
       for (patternMatch <- infoKeyValPattern.findAllMatchIn(infoString)) {
         sourceLineInfo match {
@@ -243,7 +251,8 @@ object LazyModuleSpec extends TestSuite {
       class SourceLazyModule(implicit p: Parameters) extends LazyModule {
         val source = new DemoSource
         val sink = source.makeSink()
-        val lazyModuleInScope = LazyScope.apply[LazyModule]("myLazyScope", "moduleDesiredName")(LazyModule(new LazyScopeModule))(p)
+        val lazyModuleInScope =
+          LazyScope.apply[LazyModule]("myLazyScope", "moduleDesiredName")(LazyModule(new LazyScopeModule))(p)
         lazy val module = new LazyModuleImp(this) {
           source.bundle := 4.U
         }
@@ -267,11 +276,19 @@ object LazyModuleSpec extends TestSuite {
       //              *
       //              *
       //            None
-      val topGraph = graph.getVertices.map( v => v -> graph.getEdges(v))
+      val topGraph = graph.getVertices.map(v => v -> graph.getEdges(v))
       //test graph -> (InstanceKey("parent.name","parent.module.name"),Set(InstanceKey("children","children.module.name")))
-      utest.assert(topGraph.head == (InstanceKey("LazyModule_1","LazyModule_1"),Set(InstanceKey("myLazyScope","moduleDesiredName"))))
-      utest.assert(topGraph.tail.head == (InstanceKey("myLazyScope","moduleDesiredName"),Set(InstanceKey("lazyModuleInScope","LazyModule"))))
-      utest.assert(topGraph.tail.tail.head == (InstanceKey("lazyModuleInScope","LazyModule"),Set()))
+      utest.assert(
+        topGraph.head == (InstanceKey("LazyModule_1", "LazyModule_1"), Set(
+          InstanceKey("myLazyScope", "moduleDesiredName")
+        ))
+      )
+      utest.assert(
+        topGraph.tail.head == (InstanceKey("myLazyScope", "moduleDesiredName"), Set(
+          InstanceKey("lazyModuleInScope", "LazyModule")
+        ))
+      )
+      utest.assert(topGraph.tail.tail.head == (InstanceKey("lazyModuleInScope", "LazyModule"), Set()))
 
       utest.assert(sourceModule.children.head.className == "SimpleLazyModule")
       utest.assert(sourceModule.children.head.name == "myLazyScope")
