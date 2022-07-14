@@ -2,7 +2,14 @@ package diplomacy.unittest
 
 import chipsalliance.rocketchip.config.Parameters
 import chisel3.{Data, _}
-import diplomacy.bundlebridge.{BundleBridgeEphemeralNode, BundleBridgeIdentityNode, BundleBridgeNexus, BundleBridgeNexusNode, BundleBridgeSink, BundleBridgeSource}
+import diplomacy.bundlebridge.{
+  BundleBridgeEphemeralNode,
+  BundleBridgeIdentityNode,
+  BundleBridgeNexus,
+  BundleBridgeNexusNode,
+  BundleBridgeSink,
+  BundleBridgeSource
+}
 import diplomacy.lazymodule.{LazyModule, LazyModuleImp}
 import diplomacy.nodes.{BIND_ONCE, BIND_QUERY, BIND_STAR, NodeImp}
 import utest._
@@ -402,11 +409,10 @@ object BundleBridgeSpec extends TestSuite {
           *
           * Inward and outward side of the [[NexusNode]]s should have the same [[NodeImp]] implementation.
           * So we connect following nodes like this following line.
-          * */
+          */
         identityNodeModule.nodeIdentity :*= nexusLM.node := identitySourceModule.source
 
-        lazy val module = new LazyModuleImp(this) {
-        }
+        lazy val module = new LazyModuleImp(this) {}
       }
       val TopLM = LazyModule(new TopLazyModule())
       chisel3.stage.ChiselStage.elaborate(TopLM.module)
@@ -452,6 +458,7 @@ object BundleBridgeSpec extends TestSuite {
         val ephemeralSinkModule = LazyModule(new SinkLazyModule)
         val nexusLM = LazyModule(new DemoNexus)
         val ephemeralLM = LazyModule(new NexusLazymodule[UInt](Some(genOption))("nodeEphemeral"))
+
         /** BundleBridgeEphemeralNode extends from [[EphemeralNode]] and the [[NodeImp]] is [[BundleBridgeImp]].
           * [[EphemeralNode]]s are used as temporary connectivity placeholders, but disappear from the final node graph.
           * An ephemeral node provides a mechanism to directly connect two nodes to each other where neither node knows about the other,
@@ -459,7 +466,7 @@ object BundleBridgeSpec extends TestSuite {
           *
           * Inward and outward side of the [[NexusNode]] should have the same [[NodeImp]] implementation.
           * So we connect following nodes like this following line.
-          * */
+          */
         ephemeralSinkModule.sink := ephemeralLM.nodeEphemeral := nexusLM.node := ephemeralSourceModule.source
         lazy val module = new LazyModuleImp(this) {}
       }
