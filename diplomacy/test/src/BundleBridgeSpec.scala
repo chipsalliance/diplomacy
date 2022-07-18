@@ -6,7 +6,6 @@ import diplomacy.bundlebridge.{
   BundleBridgeEphemeralNode,
   BundleBridgeIdentityNode,
   BundleBridgeNexus,
-  BundleBridgeNexusNode,
   BundleBridgeSink,
   BundleBridgeSource
 }
