@@ -13,14 +13,14 @@ import utest._
 object NodeSpec extends TestSuite {
   def tests: Tests = Tests {
 
-    test("iBindings and oBindings ") {
+    test("iBindings and oBindings") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
       class DemoSource(implicit valName: sourcecode.Name) extends BundleBridgeSource[UInt](Some(genOption))
       class DemoSink(implicit valName: sourcecode.Name) extends BundleBridgeSink[UInt](Some(genOption))
 
-      class SourceLazyModule extends LazyModule {
+      class SourceLazyModule extends LazyModule{
         val source = new DemoSource
         lazy val module = new LazyModuleImp(this) {
           val source_bundle = source.bundle
@@ -28,18 +28,18 @@ object NodeSpec extends TestSuite {
         }
       }
 
-      class SinkLazyModule extends LazyModule {
+      class SinkLazyModule extends LazyModule{
         val sink = new DemoSink
-        lazy val module = new LazyModuleImp(this) {
+        lazy val module = new LazyModuleImp(this){
         }
       }
 
-      class NexusLazymodule[T <: Data](genOpt: Option[() => T] = None) extends LazyModule {
+      class NexusLazymodule[T <: Data](genOpt: Option[() => T] = None) extends LazyModule{
 
-        val aname: Option[String] = Some("NexusNode")
         val registered: Boolean = true
         val default: Option[() => T] = genOpt
-        val inputRequiresOutput: Boolean = true // when false, connecting a source does not mandate connecting a sink
+        // when false, connecting a source does not mandate connecting a sink
+        val inputRequiresOutput: Boolean = true
         val canshouldBeInlined: Boolean = true
 
         val broadcast: BundleBridgeNexus[T] = LazyModule(
@@ -51,14 +51,14 @@ object NodeSpec extends TestSuite {
             shouldBeInlined = canshouldBeInlined
           )(p)
         )
-        //def return a node
+        // def return a node
         val broadcastnode = broadcast.node
 
         lazy val module = new LazyModuleImp(this) {
         }
       }
 
-      class TopLazyModule extends LazyModule {
+      class TopLazyModule extends LazyModule{
         val sourceModule = LazyModule(new SourceLazyModule)
         val sinkModule = LazyModule(new SinkLazyModule)
         val OthersinkModule = LazyModule(new SinkLazyModule)
@@ -90,19 +90,19 @@ object NodeSpec extends TestSuite {
           utest.assert(sinkModule.sink.iBindings.head._3 == BIND_STAR)
           utest.assert(sinkModule.sink.oBindings.isEmpty)
           // OthersinkModule.sink iBindings/oBindings
-          //TODO : why two sink nodes these bound to a same  broadcast node have different index 0 and 1
+          // TODO: why two sink nodes these bound to a same  broadcast node have different index 0 and 1
           utest.assert(OthersinkModule.sink.iBindings.head._1 == 1)
           utest.assert(OthersinkModule.sink.iBindings.head._2.name == "broadcast.node")
           utest.assert(OthersinkModule.sink.iBindings.head._3 == BIND_ONCE)
           utest.assert(OthersinkModule.sink.oBindings.isEmpty)
           // NexusLM.broadcastnode iBindings/oBindings
-          //TODO : why a same  broadcast node that bound to two different sink nodes has same index 0
+          // TODO: why a same  broadcast node that bound to two different sink nodes has same index 0
           utest.assert(NexusLM.broadcastnode.oBindings.size == 2)
-          //printf(p"${NexusLM.broadcastnode.oBindings(0) )
+          // printf(p"${NexusLM.broadcastnode.oBindings(0) )
           utest.assert(NexusLM.broadcastnode.oBindings(0)._1 == 0 )
           utest.assert(NexusLM.broadcastnode.oBindings(0)._2.name == "sinkModule.sink")
           utest.assert(NexusLM.broadcastnode.oBindings(0)._3 == BIND_QUERY)
-          //printf(p"${NexusLM.broadcastnode.oBindings(1)}")
+          // printf(p"${NexusLM.broadcastnode.oBindings(1)}")
           utest.assert(NexusLM.broadcastnode.oBindings(1)._1 == 0)
           utest.assert(NexusLM.broadcastnode.oBindings(1)._2.name == "OthersinkModule.sink")
           utest.assert(NexusLM.broadcastnode.oBindings(1)._3 == BIND_ONCE)
@@ -114,10 +114,10 @@ object NodeSpec extends TestSuite {
         }
       }
       val TopLM = LazyModule(new TopLazyModule())
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      println(chisel3.stage.ChiselStage.elaborate(TopLM.module))
     }
 
-    test("iPortMapping and oPortMapping ") {
+    test("iPortMapping and oPortMapping"){
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -202,10 +202,10 @@ object NodeSpec extends TestSuite {
       }
 
       val TopLM = LazyModule(new TopLazyModule())
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      println(chisel3.stage.ChiselStage.elaborate(TopLM.module))
     }
 
-    test("iDirectPorts and oDirectPorts ") {
+    test("iDirectPorts and oDirectPorts") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -230,7 +230,8 @@ object NodeSpec extends TestSuite {
 
         val registered: Boolean = true
         val default: Option[() => T] = genOpt
-        val inputRequiresOutput: Boolean = true // when false, connecting a source does not mandate connecting a sink
+        // when false, connecting a source does not mandate connecting a sink
+        val inputRequiresOutput: Boolean = true
         val canshouldBeInlined: Boolean = true
 
         val broadcast: BundleBridgeNexus[T] = LazyModule(
@@ -291,10 +292,10 @@ object NodeSpec extends TestSuite {
       }
 
       val TopLM = LazyModule(new TopLazyModule())
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      println(chisel3.stage.ChiselStage.elaborate(TopLM.module))
     }
 
-    test("iPorts and oPorts ") {
+    test("iPorts and oPorts") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -319,7 +320,8 @@ object NodeSpec extends TestSuite {
 
         val registered: Boolean = true
         val default: Option[() => T] = genOpt
-        val inputRequiresOutput: Boolean = true // when false, connecting a source does not mandate connecting a sink
+        // when false, connecting a source does not mandate connecting a sink
+        val inputRequiresOutput: Boolean = true
         val canshouldBeInlined: Boolean = true
 
         val broadcast: BundleBridgeNexus[T] = LazyModule(
@@ -379,10 +381,10 @@ object NodeSpec extends TestSuite {
       }
 
       val TopLM = LazyModule(new TopLazyModule())
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      println(chisel3.stage.ChiselStage.elaborate(TopLM.module))
     }
 
-    test("ResolveStar : iStar and oStar ") {
+    test("ResolveStar: iStar and oStar") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -407,7 +409,8 @@ object NodeSpec extends TestSuite {
 
         val registered: Boolean = true
         val default: Option[() => T] = genOpt
-        val inputRequiresOutput: Boolean = true // when false, connecting a source does not mandate connecting a sink
+        // when false, connecting a source does not mandate connecting a sink
+        val inputRequiresOutput: Boolean = true
         val canshouldBeInlined: Boolean = true
 
         val broadcast: BundleBridgeNexus[T] = LazyModule(
@@ -454,10 +457,10 @@ object NodeSpec extends TestSuite {
       }
 
       val TopLM = LazyModule(new TopLazyModule())
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      println(chisel3.stage.ChiselStage.elaborate(TopLM.module))
     }
 
-    test(" diParams and doParams ") {
+    test("diParams and doParams") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -482,7 +485,8 @@ object NodeSpec extends TestSuite {
 
         val registered: Boolean = true
         val default: Option[() => T] = genOpt
-        val inputRequiresOutput: Boolean = true // when false, connecting a source does not mandate connecting a sink
+        // when false, connecting a source does not mandate connecting a sink
+        val inputRequiresOutput: Boolean = true
         val canshouldBeInlined: Boolean = true
 
         val broadcast: BundleBridgeNexus[T] = LazyModule(
@@ -536,10 +540,10 @@ object NodeSpec extends TestSuite {
       }
 
       val TopLM = LazyModule(new TopLazyModule())
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      println(chisel3.stage.ChiselStage.elaborate(TopLM.module))
     }
 
-    test(" uoParams and uiParams ") {
+    test("uoParams and uiParams") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -564,7 +568,8 @@ object NodeSpec extends TestSuite {
 
         val registered: Boolean = true
         val default: Option[() => T] = genOpt
-        val inputRequiresOutput: Boolean = true // when false, connecting a source does not mandate connecting a sink
+        // when false, connecting a source does not mandate connecting a sink
+        val inputRequiresOutput: Boolean = true
         val canshouldBeInlined: Boolean = true
 
         val broadcast: BundleBridgeNexus[T] = LazyModule(
@@ -618,10 +623,10 @@ object NodeSpec extends TestSuite {
       }
 
       val TopLM = LazyModule(new TopLazyModule())
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      println(chisel3.stage.ChiselStage.elaborate(TopLM.module))
     }
 
-    test(" edgesIn and edgesOut ") {
+    test("edgesIn and edgesOut") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -646,7 +651,8 @@ object NodeSpec extends TestSuite {
 
         val registered: Boolean = true
         val default: Option[() => T] = genOpt
-        val inputRequiresOutput: Boolean = true // when false, connecting a source does not mandate connecting a sink
+        // when false, connecting a source does not mandate connecting a sink
+        val inputRequiresOutput: Boolean = true
         val canshouldBeInlined: Boolean = true
 
         val broadcast: BundleBridgeNexus[T] = LazyModule(
@@ -726,10 +732,10 @@ object NodeSpec extends TestSuite {
       }
 
       val TopLM = LazyModule(new TopLazyModule())
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      println(chisel3.stage.ChiselStage.elaborate(TopLM.module))
     }
 
-    test("bundleIn and bundleOut.") {
+    test("bundleIn and bundleOut") {
       implicit val p = Parameters.empty
       val genOption = () => UInt(32.W)
 
@@ -754,7 +760,8 @@ object NodeSpec extends TestSuite {
 
         val registered: Boolean = true
         val default: Option[() => T] = genOpt
-        val inputRequiresOutput: Boolean = true // when false, connecting a source does not mandate connecting a sink
+        // when false, connecting a source does not mandate connecting a sink
+        val inputRequiresOutput: Boolean = true
         val canshouldBeInlined: Boolean = true
 
         val broadcast: BundleBridgeNexus[T] = LazyModule(
@@ -784,10 +791,10 @@ object NodeSpec extends TestSuite {
 
         lazy val module = new LazyModuleImp(this) {
           /** Create actual Wires corresponding to the Bundles parameterized by the outward edges of this node. */
-          /**protected[diplomacy] lazy val bundleOut: Seq[BO] = edgesOut.map(e => chisel3.Wire(outer.bundleO(e)))
+          /** protected[diplomacy] lazy val bundleOut: Seq[BO] = edgesOut.map(e => chisel3.Wire(outer.bundleO(e)))
 
           /** Create actual Wires corresponding to the Bundles parameterized by the inward edges of this node. */
-          //protected[diplomacy] lazy val bundleIn: Seq[BI] = edgesIn.map(e => chisel3.Wire(inner.bundleI(e))) */
+              protected[diplomacy] lazy val bundleIn: Seq[BI] = edgesIn.map(e => chisel3.Wire(inner.bundleI(e))) */
 
           /** test bundleIn / bundleOut :
             *  edges: Edges[EI, EO] = Edges(edgesIn, edgesOut)
@@ -818,10 +825,10 @@ object NodeSpec extends TestSuite {
         }
       }
       val TopLM = LazyModule(new TopLazyModule())
-      println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
+      println(chisel3.stage.ChiselStage.elaborate(TopLM.module))
     }
 
-    test(" SourceNode && SinkNode resolveStar"){
+    test("SourceNode && SinkNode resolveStar"){
       implicit val p = Parameters.empty
 
       case class CustomSourceNodeParams(width: Int)
@@ -923,10 +930,9 @@ object NodeSpec extends TestSuite {
         override lazy val desiredName = "AdderTestHarness"
       }
       val TopLM=LazyModule(new AdderTestHarness()(Parameters.empty))
-      val verilog = chisel3.stage.ChiselStage.emitFirrtl(TopLM.module)
-      //println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
-      //TODO: why the verilog code generated by this top module have no detail , just clock and reset signals
-      println(s"```verilog\n$verilog```")
+      chisel3.stage.ChiselStage.elaborate(TopLM.module)
+      // TODO: why the verilog code generated by this top module have no detail , just clock and reset signals
+      // println(s"```verilog\n$verilog```")
       /**
       test source&sink  node resolveStar
 
@@ -983,7 +989,7 @@ object NodeSpec extends TestSuite {
       utest.assert(TopLM.monitor_3.nodeSeq.head.oStar == 0)
     }
 
-    test(" AdapterNode resolveStar"){
+    test("AdapterNode resolveStar"){
       implicit val p = Parameters.empty
 
       case class CustomSourceNodeParams(width: Int)
@@ -1097,7 +1103,7 @@ object NodeSpec extends TestSuite {
         override lazy val desiredName = "AdderTestHarness"
       }
       val TopLM=LazyModule(new AdderTestHarness()(Parameters.empty))
-      val verilog = chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module)
+      val verilog = chisel3.stage.ChiselStage.elaborate(TopLM.module)
       //println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
       //TODO: why the verilog code generated by this top module have no detail , just clock and reset signals
       println(s"```verilog\n$verilog```")
@@ -1126,7 +1132,7 @@ object NodeSpec extends TestSuite {
       utest.assert(TopLM.Register_2.nodeSumAdapter.oStar == 1)
     }
 
-    test(" JunctionNode resolveStar"){
+    test("JunctionNode resolveStar"){
       implicit val p = Parameters.empty
 
       case class CustomSourceNodeParams(width: Int)
@@ -1220,7 +1226,7 @@ object NodeSpec extends TestSuite {
           *   jbar.node :*= masters2.node
           * }}}
           */
-          //TODO: ERROR[module AdderJunction]  Reference bundleOut_2 is not fully initialized. : bundleOut_2 <= VOID
+          // TODO: ERROR[module AdderJunction]  Reference bundleOut_2 is not fully initialized. : bundleOut_2 <= VOID
           // why the edge negotiated can generate according bundle
         val masters_0_1 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 2)) }
         val masters_0_2 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 2, numOutputs = 2)) }
@@ -1242,10 +1248,9 @@ object NodeSpec extends TestSuite {
         override lazy val desiredName = "AdderTestHarness"
       }
       val TopLM=LazyModule(new AdderTestHarness()(Parameters.empty))
-      val verilog = chisel3.stage.ChiselStage.emitFirrtl(TopLM.module)
-      //println(chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module))
-      //TODO: why the verilog code generated by this top module have no detail , just clock and reset signals
-      println(s"```verilog\n$verilog```")
+      chisel3.stage.ChiselStage.elaborate(TopLM.module)
+      // TODO: why the verilog code generated by this top module have no detail , just clock and reset signals
+      // println(s"```verilog\n$verilog```")
       /**
         * test case 0
         */
@@ -1388,7 +1393,7 @@ object NodeSpec extends TestSuite {
           */
           //TODO: there may be a question , in case 3 ,
           // nexusNode.iKnow == 0 && nexusNode.oKnow == 0 => nexusNode.iStar==0 && nexusNode.oStar==0
-          // so like that  nexusNode is nothing in a bind like that
+          // so like that nexusNode is nothing in a bind like that
         //val adder_3 = LazyModule(new Adder)
         //val drivers_3 = Seq.fill(numOperands) { LazyModule(new AdderDriver(width = 4, numOutputs = 2)) }
         //val monitor_3 = LazyModule(new AdderMonitor(width = 2, numOperands = numOperands))
@@ -1408,7 +1413,7 @@ object NodeSpec extends TestSuite {
       }
       val TopLM=LazyModule(new AdderTestHarness()(Parameters.empty))
 
-      val verilog = chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module)
+      val verilog = chisel3.stage.ChiselStage.elaborate(TopLM.module)
       //println(TopLM.monitor.module.io.error)
       println(s"```verilog\n$verilog```")
       /**
@@ -1590,7 +1595,7 @@ object NodeSpec extends TestSuite {
       //val verilog = (new ChiselStage).emitVerilog(
       //   TopLM.monitor.module
       //)
-      val verilog = chisel3.stage.ChiselStage.emitSystemVerilog(TopLM.module)
+      val verilog = chisel3.stage.ChiselStage.elaborate(TopLM.module)
       //println(TopLM.monitor.module.io.error)
       println(s"```verilog\n$verilog```")
       /**
