@@ -2,6 +2,8 @@ package org.chipsalliance.diplomacy.nodes
 
 import chisel3.Data
 
+import org.chipsalliance.diplomacy.ValName
+
 /** A node which does not modify the parameters nor the protocol for edges that pass through it.
   *
   * During hardware generation, [[IdentityNode]]s automatically connect their inputs to outputs.
@@ -10,7 +12,7 @@ class IdentityNode[D, U, EO, EI, B <: Data](
   imp:              NodeImp[D, U, EO, EI, B]
 )(
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends AdapterNode(imp)({ s => s }, { s => s }) {
   override def description           = "identity"
   override final def circuitIdentity = true

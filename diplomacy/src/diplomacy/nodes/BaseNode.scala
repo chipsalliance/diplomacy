@@ -3,6 +3,8 @@ package org.chipsalliance.diplomacy.nodes
 import chisel3.Data
 import chisel3.experimental.SourceInfo
 import org.chipsalliance.cde.config.Parameters
+
+import org.chipsalliance.diplomacy.ValName
 import org.chipsalliance.diplomacy.lazymodule.LazyModule
 import org.chipsalliance.diplomacy.sourceLine
 
@@ -15,7 +17,7 @@ import scala.collection.mutable.ListBuffer
   *   [[ValName]] of this node, used by naming inference.
   */
 abstract class BaseNode(
-  implicit val valName: sourcecode.Name) {
+  implicit val valName: ValName) {
 
   /** All subclasses of [[BaseNode]]s are expected to be instantiated only within [[LazyModule]]s.
     *

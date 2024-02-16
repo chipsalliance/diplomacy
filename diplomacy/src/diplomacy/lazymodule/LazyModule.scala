@@ -4,7 +4,8 @@ package org.chipsalliance.diplomacy.lazymodule
 
 import chisel3.experimental.{ChiselAnnotation, CloneModuleAsRecord, SourceInfo, UnlocatableSourceInfo}
 import org.chipsalliance.cde.config.Parameters
-import org.chipsalliance.diplomacy.sourceLine
+
+import org.chipsalliance.diplomacy.{sourceLine, ValName}
 import org.chipsalliance.diplomacy.nodes.{BaseNode, Dangle, RenderedEdge}
 
 import scala.collection.immutable.SortedMap
@@ -260,6 +261,12 @@ abstract class LazyModule(
 
   /** Accessor for [[nodes]]. */
   def getNodes: List[BaseNode] = nodes
+
+  /** Accessor for [[info]]. */
+  def getInfo: SourceInfo = info
+
+  /** Accessor for [[parent]]. */
+  def getParent: Option[LazyModule] = parent
 }
 
 object LazyModule {
@@ -269,6 +276,9 @@ object LazyModule {
     * Each call to [[LazyScope.apply]] or [[LazyModule.apply]] will push that item onto the current scope.
     */
   protected[diplomacy] var scope: Option[LazyModule] = None
+
+  /** Accessor for [[scope]]. */
+  def getScope: Option[LazyModule] = scope
 
   /** Global index of [[LazyModule]]. Note that there is no zeroth module. */
   private var index = 0
@@ -288,7 +298,7 @@ object LazyModule {
   def apply[T <: LazyModule](
     bc:               T
   )(
-    implicit valName: sourcecode.Name,
+    implicit valName: ValName,
     sourceInfo:       SourceInfo
   ): T = {
     // Make sure the user puts [[LazyModule]] around modules in the correct order.
