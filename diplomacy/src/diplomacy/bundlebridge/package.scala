@@ -2,13 +2,15 @@ package org.chipsalliance.diplomacy
 
 import chisel3.{Aggregate, Data, Element}
 import org.chipsalliance.cde.config.Parameters
+
+import org.chipsalliance.diplomacy.ValName
 import org.chipsalliance.diplomacy.lazymodule.LazyModule
 import org.chipsalliance.diplomacy.nodes.{InwardNodeHandle, NodeHandle, OutwardNodeHandle}
 
 package object bundlebridge {
 
   def BundleBridgeNameNode[T <: Data](name: String): BundleBridgeIdentityNode[T] =
-    BundleBridgeIdentityNode[T]()(sourcecode.Name(name))
+    BundleBridgeIdentityNode[T]()(ValName(name))
 
   def BundleBroadcast[T <: Data](
     name:                Option[String] = None,

@@ -2,6 +2,8 @@ package org.chipsalliance.diplomacy.nodes
 
 import chisel3.{Data, Flipped, IO}
 
+import org.chipsalliance.diplomacy.ValName
+
 /** A node which represents a node in the graph which only has outward edges and no inward edges.
   *
   * A [[SourceNode]] cannot appear left of a `:=`, `:*=`, `:=*, or `:*=*` There are no Mixed [[SourceNode]]s, There are
@@ -11,7 +13,7 @@ class SourceNode[D, U, EO, EI, B <: Data](
   imp:              NodeImp[D, U, EO, EI, B]
 )(po:               Seq[D]
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends MixedNode(imp, imp) {
 
   override def description = "source"
@@ -68,7 +70,7 @@ class SourceNode[D, U, EO, EI, B <: Data](
 
   def makeIOs(
   )(
-    implicit valName: sourcecode.Name
+    implicit valName: ValName
   ): HeterogeneousBag[B] = {
     val bundles = this.out.map(_._1)
     val ios     = IO(Flipped(new HeterogeneousBag(bundles)))

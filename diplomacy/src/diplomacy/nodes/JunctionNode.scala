@@ -2,6 +2,8 @@ package org.chipsalliance.diplomacy.nodes
 
 import chisel3.Data
 
+import org.chipsalliance.diplomacy.ValName
+
 /** A JunctionNode creates multiple parallel arbiters.
   *
   * @example
@@ -36,7 +38,7 @@ class MixedJunctionNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
 )(dFn:              Seq[DI] => Seq[DO],
   uFn:              Seq[UO] => Seq[UI]
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends MixedNode(inner, outer) {
   protected[diplomacy] var multiplicity = 0
 
@@ -88,5 +90,5 @@ class JunctionNode[D, U, EO, EI, B <: Data](
 )(dFn:              Seq[D] => Seq[D],
   uFn:              Seq[U] => Seq[U]
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends MixedJunctionNode[D, U, EI, B, D, U, EO, B](imp, imp)(dFn, uFn)

@@ -1,7 +1,8 @@
 package org.chipsalliance.diplomacy.lazymodule
 
 import chisel3.experimental.SourceInfo
-import org.chipsalliance.diplomacy.sourceLine
+
+import org.chipsalliance.diplomacy.{sourceLine, ValName}
 
 object CloneLazyModule {
 
@@ -18,7 +19,7 @@ object CloneLazyModule {
     bc:               A,
     cloneProto:       B
   )(
-    implicit valName: sourcecode.Name,
+    implicit valName: ValName,
     sourceInfo:       SourceInfo
   ): A = {
     require(

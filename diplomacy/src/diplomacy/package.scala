@@ -164,6 +164,10 @@ import scala.language.implicitConversions
   */
 package object diplomacy {
 
+  type ValName = sourcecode.Name
+
+  def ValName(value: String) = sourcecode.Name(value)
+
   private[diplomacy] def sourceLine(sourceInfo: SourceInfo, prefix: String = " (", suffix: String = ")") =
     sourceInfo match {
       case SourceLine(filename, line, col) => s"$prefix$filename:$line:$col$suffix"

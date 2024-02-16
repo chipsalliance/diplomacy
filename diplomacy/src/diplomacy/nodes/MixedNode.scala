@@ -3,6 +3,8 @@ package org.chipsalliance.diplomacy.nodes
 import chisel3.{Data, DontCare, Wire}
 import chisel3.experimental.SourceInfo
 import org.chipsalliance.cde.config.{Field, Parameters}
+
+import org.chipsalliance.diplomacy.ValName
 import org.chipsalliance.diplomacy.lazymodule.LazyModuleImp
 import org.chipsalliance.diplomacy.sourceLine
 
@@ -163,7 +165,7 @@ protected[diplomacy] abstract class MixedNode[DI, UI, EI, BI <: Data, DO, UO, EO
   val inner:        InwardNodeImp[DI, UI, EI, BI],
   val outer:        OutwardNodeImp[DO, UO, EO, BO]
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends BaseNode
     with NodeHandle[DI, UI, EI, BI, DO, UO, EO, BO]
     with InwardNode[DI, UI, BI]
