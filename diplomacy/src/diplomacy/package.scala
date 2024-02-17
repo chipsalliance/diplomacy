@@ -7,6 +7,9 @@ import org.chipsalliance.cde.config.Parameters
 import org.chipsalliance.diplomacy.lazymodule.ModuleValue
 import org.chipsalliance.diplomacy.nodes.{MonitorsEnabled, NodeHandle, NodeImp, RenderFlipped}
 
+// TODO - remove after full deprecation of old ValName Macro api
+import sourcecode.{NameMachineMacros, NameMacros, SourceCompanion, SourceValue}
+
 import scala.language.implicitConversions
 
 /** Diplomacy is a set of abstractions for describing directed, acyclic graphs where parameters will be negotiated
@@ -164,9 +167,17 @@ import scala.language.implicitConversions
   */
 package object diplomacy {
 
-  type ValName = sourcecode.Name
+  // TODO - replace with type alias when name accessor is fully deprecated.
+  implicit class ValName(private val x: sourcecode.Name) {
+    @deprecated("Name method has been removed in transition to sourcecode library.", "diplomacy 1.0.0")
+    def name:  String = x.value
+    def value: String = x.value
+  }
 
-  def ValName(value: String) = sourcecode.Name(value)
+  // TODO - replace with def ValName(value: String) = sourcecode.Name when legacy name accessor is fully deprecated.
+  implicit object ValName extends ValName(implicitly[sourcecode.Name]) {
+    def apply(value: String) = new ValName(sourcecode.Name(value))
+  }
 
   private[diplomacy] def sourceLine(sourceInfo: SourceInfo, prefix: String = " (", suffix: String = ")") =
     sourceInfo match {
