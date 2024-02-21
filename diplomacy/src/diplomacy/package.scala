@@ -167,17 +167,16 @@ import scala.language.implicitConversions
   */
 package object diplomacy {
 
+  type ValName = sourcecode.Name
+
   // TODO - replace with type alias when name accessor is fully deprecated.
-  implicit class ValName(private val x: sourcecode.Name) {
+  implicit class SourcecodeNameExt(private val x: sourcecode.Name) {
     @deprecated("Name method has been removed in transition to sourcecode library.", "diplomacy 1.0.0")
     def name:  String = x.value
     def value: String = x.value
   }
 
-  // TODO - replace with def ValName(value: String) = sourcecode.Name when legacy name accessor is fully deprecated.
-  implicit object ValName extends ValName(implicitly[sourcecode.Name]) {
-    def apply(value: String) = new ValName(sourcecode.Name(value))
-  }
+  def ValName(value: String): ValName = sourcecode.Name(value)
 
   private[diplomacy] def sourceLine(sourceInfo: SourceInfo, prefix: String = " (", suffix: String = ")") =
     sourceInfo match {
