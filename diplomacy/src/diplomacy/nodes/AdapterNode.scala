@@ -1,25 +1,28 @@
 package org.chipsalliance.diplomacy.nodes
 import chisel3.Data
 
-/** [[MixedAdapterNode]] is used to transform between different diplomacy protocols ([[NodeImp]]), without changing the number of edges passing through it.
+/** [[MixedAdapterNode]] is used to transform between different diplomacy protocols ([[NodeImp]]), without changing the
+  * number of edges passing through it.
   *
   * For example, a [[MixedAdapterNode]] is needed for a TL to AXI bridge (interface).
   * {{{
   *   case class TLToAXI4Node(stripBits: Int = 0)(implicit valName: sourcecode.Name) extends MixedAdapterNode(TLImp, AXI4Imp)
   * }}}
   *
-  * @param dFn convert downward parameter from input to output.
-  * @param uFn convert upward parameter from output to input.
+  * @param dFn
+  *   convert downward parameter from input to output.
+  * @param uFn
+  *   convert upward parameter from output to input.
   */
 class MixedAdapterNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
-  inner: InwardNodeImp[DI, UI, EI, BI],
-  outer: OutwardNodeImp[DO, UO, EO, BO]
-)(dFn:   DI => DO,
-  uFn:   UO => UI
+  inner:            InwardNodeImp[DI, UI, EI, BI],
+  outer:            OutwardNodeImp[DO, UO, EO, BO]
+)(dFn:              DI => DO,
+  uFn:              UO => UI
 )(
   implicit valName: sourcecode.Name)
     extends MixedNode(inner, outer) {
-  override def description = "adapter"
+  override def description                                 = "adapter"
   protected[diplomacy] override def flexibleArityDirection = true
   protected[diplomacy] def resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int) = {
     require(
@@ -65,7 +68,7 @@ class MixedAdapterNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
       (0, 0)
     }
   }
-  protected[diplomacy] def mapParamsD(n: Int, p: Seq[DI]): Seq[DO] = {
+  protected[diplomacy] def mapParamsD(n: Int, p: Seq[DI]):                                  Seq[DO]    = {
     require(
       n == p.size,
       s"""Diplomacy has detected a problem with your graph:
@@ -76,7 +79,7 @@ class MixedAdapterNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
     )
     p.map(dFn)
   }
-  protected[diplomacy] def mapParamsU(n: Int, p: Seq[UO]): Seq[UI] = {
+  protected[diplomacy] def mapParamsU(n: Int, p: Seq[UO]):                                  Seq[UI]    = {
     require(
       n == p.size,
       s"""Diplomacy has detected a problem with your graph:
@@ -89,11 +92,13 @@ class MixedAdapterNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
   }
 }
 
-/** A node which modifies the parameters flowing through it, but without changing the number of edges or the diplomatic protocol implementation. */
+/** A node which modifies the parameters flowing through it, but without changing the number of edges or the diplomatic
+  * protocol implementation.
+  */
 class AdapterNode[D, U, EO, EI, B <: Data](
-  imp: NodeImp[D, U, EO, EI, B]
-)(dFn: D => D,
-  uFn: U => U
+  imp:              NodeImp[D, U, EO, EI, B]
+)(dFn:              D => D,
+  uFn:              U => U
 )(
   implicit valName: sourcecode.Name)
     extends MixedAdapterNode[D, U, EI, B, D, U, EO, B](imp, imp)(dFn, uFn)

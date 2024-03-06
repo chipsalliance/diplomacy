@@ -26,8 +26,8 @@ case object BIND_STAR extends NodeBinding {
 
 /** Connect N (N >= 0) connections.
   *
-  * The number of edges N will be determined by either the right or left side,
-  * once the direction ([[BIND_STAR]] or [[BIND_QUERY]]) is determined by the other connections as well.
+  * The number of edges N will be determined by either the right or left side, once the direction ([[BIND_STAR]] or
+  * [[BIND_QUERY]]) is determined by the other connections as well.
   */
 case object BIND_FLEX extends NodeBinding {
   override def toString: String = "flex"

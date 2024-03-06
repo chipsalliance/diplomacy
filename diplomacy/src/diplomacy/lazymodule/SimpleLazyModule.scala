@@ -6,6 +6,8 @@ import org.chipsalliance.cde.config.Parameters
   *
   * It can be used as wrapper that only instantiates and connects [[LazyModule]]s.
   */
-class SimpleLazyModule(implicit p: Parameters) extends LazyModule {
+class SimpleLazyModule(
+  implicit p: Parameters)
+    extends LazyModule {
   lazy val module = new LazyModuleImp(this)
 }

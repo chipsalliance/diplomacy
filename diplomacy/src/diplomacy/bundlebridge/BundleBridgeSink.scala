@@ -6,7 +6,10 @@ import chisel3.reflect.DataMirror.internal.chiselTypeClone
 import org.chipsalliance.diplomacy.ValName
 import org.chipsalliance.diplomacy.nodes._
 
-case class BundleBridgeSink[T <: Data](genOpt: Option[() => T] = None)(implicit valName: sourcecode.Name)
+case class BundleBridgeSink[T <: Data](
+  genOpt:           Option[() => T] = None
+)(
+  implicit valName: sourcecode.Name)
     extends SinkNode(new BundleBridgeImp[T])(Seq(BundleBridgeParams(genOpt))) {
   def bundle: T = in(0)._1
 
@@ -14,7 +17,10 @@ case class BundleBridgeSink[T <: Data](genOpt: Option[() => T] = None)(implicit 
     DataMirror.directionOf(elt) == ActualDirection.Unspecified
   }
 
-  def makeIO()(implicit valName: sourcecode.Name): T = {
+  def makeIO(
+  )(
+    implicit valName: sourcecode.Name
+  ): T = {
     val io: T = IO(if (inferOutput) Output(chiselTypeOf(bundle)) else chiselTypeClone(bundle))
     io.suggestName(valName.value)
     io <> bundle
@@ -24,7 +30,10 @@ case class BundleBridgeSink[T <: Data](genOpt: Option[() => T] = None)(implicit 
 }
 
 object BundleBridgeSink {
-  def apply[T <: Data]()(implicit valName: sourcecode.Name): BundleBridgeSink[T] = {
+  def apply[T <: Data](
+  )(
+    implicit valName: sourcecode.Name
+  ): BundleBridgeSink[T] = {
     BundleBridgeSink(None)
   }
 }

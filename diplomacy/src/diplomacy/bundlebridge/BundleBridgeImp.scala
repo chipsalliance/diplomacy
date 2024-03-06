@@ -12,12 +12,11 @@ class BundleBridgeImp[T <: Data]()
     BundleBridgeEdgeParams(pd, pu)
   def bundle(e: BundleBridgeEdgeParams[T]): T = {
     val sourceOpt = e.source.genOpt.map(_())
-    val sinkOpt = e.sink.genOpt.map(_())
+    val sinkOpt   = e.sink.genOpt.map(_())
     (sourceOpt, sinkOpt) match {
-      case (None, None) =>
-        throw new Exception("BundleBridge needs source or sink to provide bundle generator function")
-      case (Some(a), None) => a
-      case (None, Some(b)) => b
+      case (None, None)       => throw new Exception("BundleBridge needs source or sink to provide bundle generator function")
+      case (Some(a), None)    => a
+      case (None, Some(b))    => b
       case (Some(a), Some(b)) => {
         require(
           DataMirror.checkTypeEquivalence(a, b),

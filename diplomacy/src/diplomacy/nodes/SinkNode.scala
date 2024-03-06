@@ -8,19 +8,22 @@ import chisel3.{Data, IO}
   *
   * There are no "Mixed" [[SinkNode]]s because each one only has an inward side.
   */
-class SinkNode[D, U, EO, EI, B <: Data](imp: NodeImp[D, U, EO, EI, B])(pi: Seq[U])(implicit valName: sourcecode.Name)
+class SinkNode[D, U, EO, EI, B <: Data](
+  imp:              NodeImp[D, U, EO, EI, B]
+)(pi:               Seq[U]
+)(
+  implicit valName: sourcecode.Name)
     extends MixedNode(imp, imp) {
   override def description = "sink"
   protected[diplomacy] def resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int) = {
-    def resolveStarInfo: String =
-      s"""$context
-         |$bindingInfo
-         |number of known := bindings to inward nodes: $iKnown
-         |number of known := bindings to outward nodes: $oKnown
-         |number of binding queries from inward nodes: $iStars
-         |number of binding queries from outward nodes: $oStars
-         |${pi.size} inward parameters: [${pi.map(_.toString).mkString(",")}]
-         |""".stripMargin
+    def resolveStarInfo: String = s"""$context
+                                     |$bindingInfo
+                                     |number of known := bindings to inward nodes: $iKnown
+                                     |number of known := bindings to outward nodes: $oKnown
+                                     |number of binding queries from inward nodes: $iStars
+                                     |number of binding queries from outward nodes: $oStars
+                                     |${pi.size} inward parameters: [${pi.map(_.toString).mkString(",")}]
+                                     |""".stripMargin
     require(
       iStars <= 1,
       s"""Diplomacy has detected a problem with your graph:
@@ -42,32 +45,33 @@ class SinkNode[D, U, EO, EI, B <: Data](imp: NodeImp[D, U, EO, EI, B])(pi: Seq[U
          |$resolveStarInfo
          |""".stripMargin
     )
-    if (iStars == 0)
-      require(
-        pi.size == iKnown,
-        s"""Diplomacy has detected a problem with your graph:
-           |The following node has $iKnown inward bindings connected to it, but ${pi.size} sinks were specified to the node constructor.
-           |Either the number of inward := bindings should be exactly equal to the number of sink, or connect this node on the left-hand side of a :*=
-           |$resolveStarInfo
-           |""".stripMargin
-      )
-    else
-      require(
-        pi.size >= iKnown,
-        s"""Diplomacy has detected a problem with your graph:
-           |The following node has $iKnown inward bindings connected to it, but ${pi.size} sinks were specified to the node constructor.
-           |To resolve :*=, size of inward parameters can not be less than bindings.
-           |$resolveStarInfo
-           |""".stripMargin
-      )
+    if (iStars == 0) require(
+      pi.size == iKnown,
+      s"""Diplomacy has detected a problem with your graph:
+         |The following node has $iKnown inward bindings connected to it, but ${pi.size} sinks were specified to the node constructor.
+         |Either the number of inward := bindings should be exactly equal to the number of sink, or connect this node on the left-hand side of a :*=
+         |$resolveStarInfo
+         |""".stripMargin
+    )
+    else require(
+      pi.size >= iKnown,
+      s"""Diplomacy has detected a problem with your graph:
+         |The following node has $iKnown inward bindings connected to it, but ${pi.size} sinks were specified to the node constructor.
+         |To resolve :*=, size of inward parameters can not be less than bindings.
+         |$resolveStarInfo
+         |""".stripMargin
+    )
     (pi.size - iKnown, 0)
   }
   protected[diplomacy] def mapParamsD(n: Int, p: Seq[D]): Seq[D] = Seq()
   protected[diplomacy] def mapParamsU(n: Int, p: Seq[U]): Seq[U] = pi
 
-  def makeIOs()(implicit valName: sourcecode.Name): HeterogeneousBag[B] = {
+  def makeIOs(
+  )(
+    implicit valName: sourcecode.Name
+  ): HeterogeneousBag[B] = {
     val bundles = this.in.map(_._1)
-    val ios = IO(new HeterogeneousBag(bundles.map(_.cloneType)))
+    val ios     = IO(new HeterogeneousBag(bundles.map(_.cloneType)))
     ios.suggestName(valName.value)
     bundles.zip(ios).foreach { case (bundle, io) => io <> bundle }
     ios

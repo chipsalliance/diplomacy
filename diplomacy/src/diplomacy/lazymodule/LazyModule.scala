@@ -8,7 +8,8 @@ import org.chipsalliance.diplomacy.nodes.{BaseNode, RenderedEdge}
 import org.chipsalliance.diplomacy.{sourceLine, ValName}
 
 /** While the [[diplomacy]] package allows fairly abstract parameter negotiation while constructing a DAG,
-  * [[LazyModule]] builds on top of the DAG annotated with the negotiated parameters and leverage's Scala's lazy evaluation property to split Chisel module generation into two phases:
+  * [[LazyModule]] builds on top of the DAG annotated with the negotiated parameters and leverage's Scala's lazy
+  * evaluation property to split Chisel module generation into two phases:
   *
   *   - Phase 1 (diplomatic) states parameters, hierarchy, and connections:
   *     - [[LazyModule]] and [[BaseNode]] instantiation.
@@ -19,7 +20,9 @@ import org.chipsalliance.diplomacy.{sourceLine, ValName}
   *     - [[AutoBundle]] are automatically connected along [[Edges]], punching IO as necessary though module hierarchy
   *     - [[LazyModuleImpLike]] generates [[chisel3.Module]]s.
   */
-abstract class LazyModule()(implicit val p: Parameters) {
+abstract class LazyModule(
+)(
+  implicit val p: Parameters) {
 
   /** Contains sub-[[LazyModule]]s; can be accessed by [[getChildren]]. */
   protected[diplomacy] var children: List[LazyModule] = List[LazyModule]()
@@ -92,30 +95,28 @@ abstract class LazyModule()(implicit val p: Parameters) {
 
   /** [[chisel3]] hardware implementation of this [[LazyModule]].
     *
-    * Subclasses should define this function as `lazy val`s for lazy evaluation.
-    * Generally, the evaluation of this marks the beginning of phase 2.
+    * Subclasses should define this function as `lazy val`s for lazy evaluation. Generally, the evaluation of this marks
+    * the beginning of phase 2.
     */
   def module: LazyModuleImpLike
 
   /** Whether to omit generating the GraphML for this [[LazyModule]].
     *
-    * Recursively checks whether all [[BaseNode]]s and children [[LazyModule]]s should omit GraphML
-    * generation.
+    * Recursively checks whether all [[BaseNode]]s and children [[LazyModule]]s should omit GraphML generation.
     */
   def omitGraphML: Boolean = nodes.forall(_.omitGraphML) && children.forall(_.omitGraphML)
 
   /** Whether this [[LazyModule]]'s module should be marked for in-lining by FIRRTL.
     *
-    *  The default heuristic is to inline any parents whose children have been inlined
-    *  and whose nodes all produce identity circuits.
+    * The default heuristic is to inline any parents whose children have been inlined and whose nodes all produce
+    * identity circuits.
     */
   def shouldBeInlined: Boolean = nodes.forall(_.circuitIdentity) && children.forall(_.shouldBeInlined)
 
   /** GraphML representation for this instance.
     *
-    * This is a representation of the Nodes, Edges, LazyModule hierarchy,
-    * and any other information that is added in by implementations.
-    * It can be converted to an image with various third-party tools.
+    * This is a representation of the Nodes, Edges, LazyModule hierarchy, and any other information that is added in by
+    * implementations. It can be converted to an image with various third-party tools.
     */
   lazy val graphML: String = parent.map(_.graphML).getOrElse {
     val buf = new StringBuilder
@@ -140,15 +141,17 @@ abstract class LazyModule()(implicit val p: Parameters) {
 
   /** Generate GraphML fragment for nodes.
     *
-    * @param buf String buffer to write to.
-    * @param pad Padding as prefix for indentation purposes.
+    * @param buf
+    *   String buffer to write to.
+    * @param pad
+    *   Padding as prefix for indentation purposes.
     */
   private def nodesGraphML(buf: StringBuilder, pad: String): Unit = {
     buf ++= s"""$pad<node id=\"$index\">\n"""
     buf ++= s"""$pad  <data key=\"n\"><y:ShapeNode><y:NodeLabel modelName=\"sides\" modelPosition=\"w\" rotationAngle=\"270.0\">$instanceName</y:NodeLabel><y:BorderStyle type=\"${if (
-      shouldBeInlined
-    ) "dotted"
-    else "line"}\"/></y:ShapeNode></data>\n"""
+        shouldBeInlined
+      ) "dotted"
+      else "line"}\"/></y:ShapeNode></data>\n"""
     buf ++= s"""$pad  <data key=\"d\">$moduleName ($pathName)</data>\n"""
     buf ++= s"""$pad  <graph id=\"$index::\" edgedefault=\"directed\">\n"""
     nodes.filter(!_.omitGraphML).foreach { n =>
@@ -164,32 +167,33 @@ abstract class LazyModule()(implicit val p: Parameters) {
 
   /** Generate GraphML fragment for edges.
     *
-    * @param buf String buffer to write to.
-    * @param pad Padding as prefix for indentation purposes.
+    * @param buf
+    *   String buffer to write to.
+    * @param pad
+    *   Padding as prefix for indentation purposes.
     */
   private def edgesGraphML(buf: StringBuilder, pad: String): Unit = {
     nodes.filter(!_.omitGraphML).foreach { n =>
-      n.outputs.filter(!_._1.omitGraphML).foreach {
-        case (o, edge) =>
-          val RenderedEdge(colour, label, flipped) = edge
-          buf ++= pad
-          buf ++= "<edge"
-          if (flipped) {
-            buf ++= s""" target=\"$index::${n.index}\""""
-            buf ++= s""" source=\"${o.lazyModule.index}::${o.index}\">"""
-          } else {
-            buf ++= s""" source=\"$index::${n.index}\""""
-            buf ++= s""" target=\"${o.lazyModule.index}::${o.index}\">"""
-          }
-          buf ++= s"""<data key=\"e\"><y:PolyLineEdge>"""
-          if (flipped) {
-            buf ++= s"""<y:Arrows source=\"standard\" target=\"none\"/>"""
-          } else {
-            buf ++= s"""<y:Arrows source=\"none\" target=\"standard\"/>"""
-          }
-          buf ++= s"""<y:LineStyle color=\"$colour\" type=\"line\" width=\"1.0\"/>"""
-          buf ++= s"""<y:EdgeLabel modelName=\"centered\" rotationAngle=\"270.0\">$label</y:EdgeLabel>"""
-          buf ++= s"""</y:PolyLineEdge></data></edge>\n"""
+      n.outputs.filter(!_._1.omitGraphML).foreach { case (o, edge) =>
+        val RenderedEdge(colour, label, flipped) = edge
+        buf ++= pad
+        buf ++= "<edge"
+        if (flipped) {
+          buf ++= s""" target=\"$index::${n.index}\""""
+          buf ++= s""" source=\"${o.lazyModule.index}::${o.index}\">"""
+        } else {
+          buf ++= s""" source=\"$index::${n.index}\""""
+          buf ++= s""" target=\"${o.lazyModule.index}::${o.index}\">"""
+        }
+        buf ++= s"""<data key=\"e\"><y:PolyLineEdge>"""
+        if (flipped) {
+          buf ++= s"""<y:Arrows source=\"standard\" target=\"none\"/>"""
+        } else {
+          buf ++= s"""<y:Arrows source=\"none\" target=\"standard\"/>"""
+        }
+        buf ++= s"""<y:LineStyle color=\"$colour\" type=\"line\" width=\"1.0\"/>"""
+        buf ++= s"""<y:EdgeLabel modelName=\"centered\" rotationAngle=\"270.0\">$label</y:EdgeLabel>"""
+        buf ++= s"""</y:PolyLineEdge></data></edge>\n"""
       }
     }
     children.filter(!_.omitGraphML).foreach { c => c.edgesGraphML(buf, pad) }
@@ -197,7 +201,8 @@ abstract class LazyModule()(implicit val p: Parameters) {
 
   /** Call function on all of this [[LazyModule]]'s [[children]].
     *
-    * @param iterfunc Function to call on each descendant.
+    * @param iterfunc
+    *   Function to call on each descendant.
     */
   def childrenIterator(iterfunc: LazyModule => Unit): Unit = {
     iterfunc(this)
@@ -206,7 +211,8 @@ abstract class LazyModule()(implicit val p: Parameters) {
 
   /** Call function on all of this [[LazyModule]]'s [[nodes]].
     *
-    * @param iterfunc Function to call on each descendant.
+    * @param iterfunc
+    *   Function to call on each descendant.
     */
   def nodeIterator(iterfunc: BaseNode => Unit): Unit = {
     nodes.foreach(iterfunc)
@@ -242,15 +248,22 @@ object LazyModule {
 
   /** Wraps a [[LazyModule]], handling bookkeeping of scopes.
     *
-    * This method manages the scope and index of the [[LazyModule]]s. All [[LazyModule]]s must be
-    * wrapped exactly once.
+    * This method manages the scope and index of the [[LazyModule]]s. All [[LazyModule]]s must be wrapped exactly once.
     *
-    * @param bc         [[LazyModule]] instance to be wrapped.
-    * @param valName    [[ValName]] used to name this instance,
-    *                   it can be automatically generated by [[ValName]] macro, or specified manually.
-    * @param sourceInfo [[SourceInfo]] information about where this [[LazyModule]] is being generated
+    * @param bc
+    *   [[LazyModule]] instance to be wrapped.
+    * @param valName
+    *   [[ValName]] used to name this instance, it can be automatically generated by [[ValName]] macro, or specified
+    *   manually.
+    * @param sourceInfo
+    *   [[SourceInfo]] information about where this [[LazyModule]] is being generated
     */
-  def apply[T <: LazyModule](bc: T)(implicit valName: sourcecode.Name, sourceInfo: SourceInfo): T = {
+  def apply[T <: LazyModule](
+    bc:               T
+  )(
+    implicit valName: sourcecode.Name,
+    sourceInfo:       SourceInfo
+  ): T = {
     // Make sure the user puts [[LazyModule]] around modules in the correct order.
     require(
       scope.isDefined,

@@ -4,8 +4,8 @@ import chisel3.Data
 
 /** A [[MixedNode]] that may be extended with custom behavior. */
 abstract class MixedCustomNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
-  inner: InwardNodeImp[DI, UI, EI, BI],
-  outer: OutwardNodeImp[DO, UO, EO, BO]
+  inner:            InwardNodeImp[DI, UI, EI, BI],
+  outer:            OutwardNodeImp[DO, UO, EO, BO]
 )(
   implicit valName: sourcecode.Name)
     extends MixedNode(inner, outer) {
@@ -20,7 +20,7 @@ abstract class MixedCustomNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
   * Different from a [[MixedNode]] in that the inner and outer [[NodeImp]]s are the same.
   */
 abstract class CustomNode[D, U, EO, EI, B <: Data](
-  imp: NodeImp[D, U, EO, EI, B]
+  imp:              NodeImp[D, U, EO, EI, B]
 )(
   implicit valName: sourcecode.Name)
     extends MixedCustomNode(imp, imp)

@@ -12,7 +12,7 @@ class BundleBridgeNexus[T <: Data](
   inputRequiresOutput:          Boolean = false,
   override val shouldBeInlined: Boolean = true
 )(
-  implicit p: Parameters)
+  implicit p:                   Parameters)
     extends LazyModule {
   val node = BundleBridgeNexusNode[T](default, inputRequiresOutput)
 
@@ -34,10 +34,11 @@ class BundleBridgeNexus[T <: Data](
       }
     }
 
-    val outputs: Seq[T] = if (node.out.size > 0) {
-      val broadcast: T = if (inputs.size >= 1) inputFn(inputs) else defaultWireOpt.get
-      outputFn(broadcast, node.out.size)
-    } else { Nil }
+    val outputs: Seq[T] =
+      if (node.out.size > 0) {
+        val broadcast: T = if (inputs.size >= 1) inputFn(inputs) else defaultWireOpt.get
+        outputFn(broadcast, node.out.size)
+      } else { Nil }
 
     node.out.map(_._1).foreach { o =>
       require(
@@ -83,7 +84,7 @@ object BundleBridgeNexus {
     inputRequiresOutput: Boolean = false,
     shouldBeInlined:     Boolean = true
   )(
-    implicit p: Parameters
+    implicit p:          Parameters
   ): BundleBridgeNexusNode[T] = {
     val nexus = LazyModule(new BundleBridgeNexus[T](inputFn, outputFn, default, inputRequiresOutput, shouldBeInlined))
     nexus.node

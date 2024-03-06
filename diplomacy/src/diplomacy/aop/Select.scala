@@ -6,20 +6,18 @@ import org.chipsalliance.diplomacy.nodes.{AnyMixedNode, BaseNode, MixedNode}
 
 /** Combinators for finding specific sets of [[LazyModule]]s/[[BaseNode]]s.
   *
-  * These can be used for e.g. finding specific TLBundles in a design and
-  * placing monitors or annotating metadata.
+  * These can be used for e.g. finding specific TLBundles in a design and placing monitors or annotating metadata.
   */
 object Select {
 
-  /** Collects the [[InwardEdge]]s of a node. Defined as a separate method so
-    * that the bundle/edge types can be set properly
+  /** Collects the [[InwardEdge]]s of a node. Defined as a separate method so that the bundle/edge types can be set
+    * properly
     */
   private def getInwardEdges[BI <: Data, EI](
     node: MixedNode[_, _, EI, BI, _, _, _, _ <: Data]
   ): Iterable[InwardEdge[BI, EI]] = {
-    node.iPorts.zip(node.in).map {
-      case ((_, node, params, _), (bundle, edge)) =>
-        InwardEdge(params, bundle, edge, node)
+    node.iPorts.zip(node.in).map { case ((_, node, params, _), (bundle, edge)) =>
+      InwardEdge(params, bundle, edge, node)
     }
   }
 
@@ -31,15 +29,14 @@ object Select {
     }
   }
 
-  /** Collects the [[OutwardEdge]]s of a node. Defined as a separate method so
-    * that the bundle/edge types can be set properly
+  /** Collects the [[OutwardEdge]]s of a node. Defined as a separate method so that the bundle/edge types can be set
+    * properly
     */
   private def getOutwardEdges[BO <: Data, EO](
     node: MixedNode[_, _, _, _ <: Data, _, _, EO, BO]
   ): Iterable[OutwardEdge[BO, EO]] = {
-    node.oPorts.zip(node.out).map {
-      case ((_, node, params, _), (bundle, edge)) =>
-        OutwardEdge(params, bundle, edge, node)
+    node.oPorts.zip(node.out).map { case ((_, node, params, _), (bundle, edge)) =>
+      OutwardEdge(params, bundle, edge, node)
     }
   }
 
@@ -51,8 +48,7 @@ object Select {
     }
   }
 
-  /** Applies the collect function to a [[LazyModule]] and recursively to all
-    * of its children.
+  /** Applies the collect function to a [[LazyModule]] and recursively to all of its children.
     */
   def collectDeep[T](lmod: LazyModule)(collect: PartialFunction[LazyModule, T]): Iterable[T] = {
     collect.lift(lmod) ++
@@ -61,15 +57,15 @@ object Select {
       }
   }
 
-  /** Applies the collect function to a [[LazyModule]] and its children if the
-    * filter function returns true. Stops recursing when the filter function
-    * returns false. e.g.
-    * for this hierarchy
+  /** Applies the collect function to a [[LazyModule]] and its children if the filter function returns true. Stops
+    * recursing when the filter function returns false. e.g. for this hierarchy
+    * {{{
     *     A
     *    / \
     *   B   C
     *  / \   \
     * D   E   F
+    * }}}
     *
     * the following select function
     * {{{

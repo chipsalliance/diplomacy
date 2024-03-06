@@ -6,25 +6,20 @@ import chisel3.experimental.SourceInfo
 
 /** A Handle with no explicitly defined binding functionality.
   *
-  * A [[NoHandle]] is at the top of the Handle type hierarchy, but it does not define any binding operators,
-  * so by itself a [[NoHandle]] cannot be used on either side of a bind operator.
+  * A [[NoHandle]] is at the top of the Handle type hierarchy, but it does not define any binding operators, so by
+  * itself a [[NoHandle]] cannot be used on either side of a bind operator.
   *
-  * For example, a source node connected directly to a sink node produces a [[NoHandle]],
-  * because there are no further bindings that could be applied to either side of the pair of nodes.
+  * For example, a source node connected directly to a sink node produces a [[NoHandle]], because there are no further
+  * bindings that could be applied to either side of the pair of nodes.
   *
-  * The other Handle types extend this type and bestow actual binding semantics.
-  * They can always be used wherever a [[NoHandle]] is expected because a [[NoHandle]]
-  * doesn't provide any guaranteed behavior.
+  * The other Handle types extend this type and bestow actual binding semantics. They can always be used wherever a
+  * [[NoHandle]] is expected because a [[NoHandle]] doesn't provide any guaranteed behavior.
   *
   * Handle algebra:
   *
-  * "x---x" [[NoHandle]]
-  * "x---<" [[InwardNodeHandle]]
-  * "<---x" [[OutwardNodeHandle]]
-  * "<---<" (Full) [[NodeHandle]]
+  * "x---x" [[NoHandle]] "x---<" [[InwardNodeHandle]] "<---x" [[OutwardNodeHandle]] "<---<" (Full) [[NodeHandle]]
   *
-  * "<" can be bound to (arrow points in the direction of binding).
-  * "x" cannot be bound to.
+  * "<" can be bound to (arrow points in the direction of binding). "x" cannot be bound to.
   *
   * The left side is outer, the right side is inner.
   *
@@ -40,14 +35,15 @@ trait NodeHandle[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data]
 
   /** Connects two full nodes handles => full node handle.
     *
-    * <---< := <---<  == <---<
-    * This and that node are both [[BIND_ONCE]].
+    * <---< := <---< == <---< This and that node are both [[BIND_ONCE]].
     *
-    * @param h A source node also with sink handle.
-    * @return A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
+    * @param h
+    *   A source node also with sink handle.
+    * @return
+    *   A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
     */
   override def :=[DX, UX, EX, BX <: Data, EY](
-    h: NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
+    h:          NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -55,14 +51,15 @@ trait NodeHandle[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data]
 
   /** Connects two full nodes handles => full node handle.
     *
-    * <---< :*= <---<  == <---<
-    * [[BIND_STAR]] this node as sink, [[BIND_QUERY]] that node as source.
+    * <---< :*= <---< == <---< [[BIND_STAR]] this node as sink, [[BIND_QUERY]] that node as source.
     *
-    * @param h A source node also with sink handle.
-    * @return A [[NodeHandle]] with that node as `InwardNode`, this node as `OutwardNode`.
+    * @param h
+    *   A source node also with sink handle.
+    * @return
+    *   A [[NodeHandle]] with that node as `InwardNode`, this node as `OutwardNode`.
     */
   override def :*=[DX, UX, EX, BX <: Data, EY](
-    h: NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
+    h:          NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -70,14 +67,15 @@ trait NodeHandle[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data]
 
   /** Connects two full nodes handles => full node handle.
     *
-    * <---< :=* <---<  == <---<
-    * [[BIND_QUERY]] this node as sink, [[BIND_STAR]] that node as source.
+    * <---< :=* <---< == <---< [[BIND_QUERY]] this node as sink, [[BIND_STAR]] that node as source.
     *
-    * @param h A source node also with sink handle.
-    * @return A [[NodeHandle]] with that node as `InwardNode`, this node as `OutwardNode`.
+    * @param h
+    *   A source node also with sink handle.
+    * @return
+    *   A [[NodeHandle]] with that node as `InwardNode`, this node as `OutwardNode`.
     */
   override def :=*[DX, UX, EX, BX <: Data, EY](
-    h: NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
+    h:          NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -85,14 +83,15 @@ trait NodeHandle[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data]
 
   /** Connects two full nodes handles => full node handle.
     *
-    * <---< :*=* <---<  == <---<
-    * [[BIND_FLEX]] this node as sink, [[BIND_FLEX]] that node as source.
+    * <---< :*=* <---< == <---< [[BIND_FLEX]] this node as sink, [[BIND_FLEX]] that node as source.
     *
-    * @param h A source node also with sink handle.
-    * @return A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
+    * @param h
+    *   A source node also with sink handle.
+    * @return
+    *   A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
     */
   override def :*=*[DX, UX, EX, BX <: Data, EY](
-    h: NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
+    h:          NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -100,14 +99,15 @@ trait NodeHandle[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data]
 
   /** Connects a full node with an output node => an output handle.
     *
-    * <---< := <---x  ==  <---x
-    * [[BIND_ONCE]] this node as sink, [[BIND_ONCE]] that node as source.
+    * <---< := <---x == <---x [[BIND_ONCE]] this node as sink, [[BIND_ONCE]] that node as source.
     *
-    * @param h A source node also without sink handle.
-    * @return A [[OutwardNodeHandle]] with this node as `outwardNode`.
+    * @param h
+    *   A source node also without sink handle.
+    * @return
+    *   A [[OutwardNodeHandle]] with this node as `outwardNode`.
     */
   override def :=[EY](
-    h: OutwardNodeHandle[DI, UI, EY, BI]
+    h:          OutwardNodeHandle[DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -115,14 +115,15 @@ trait NodeHandle[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data]
 
   /** Connects a full node with an output node => an output handle.
     *
-    * <---< :*= <---x  ==  <---x
-    * [[BIND_STAR]] this node as sink, [[BIND_QUERY]] that node as source.
+    * <---< :*= <---x == <---x [[BIND_STAR]] this node as sink, [[BIND_QUERY]] that node as source.
     *
-    * @param h A source node also without sink handle.
-    * @return A [[OutwardNodeHandle]] with this node as `outwardNode`.
+    * @param h
+    *   A source node also without sink handle.
+    * @return
+    *   A [[OutwardNodeHandle]] with this node as `outwardNode`.
     */
   override def :*=[EY](
-    h: OutwardNodeHandle[DI, UI, EY, BI]
+    h:          OutwardNodeHandle[DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -130,14 +131,15 @@ trait NodeHandle[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data]
 
   /** Connects a full node with an output => an output.
     *
-    * <---< :=* <---x  ==  <---x
-    * [[BIND_QUERY]] this node as sink, [[BIND_STAR]] that node as source.
+    * <---< :=* <---x == <---x [[BIND_QUERY]] this node as sink, [[BIND_STAR]] that node as source.
     *
-    * @param h A source node also without sink handle.
-    * @return A [[OutwardNodeHandle]] with this node as `outwardNode`.
+    * @param h
+    *   A source node also without sink handle.
+    * @return
+    *   A [[OutwardNodeHandle]] with this node as `outwardNode`.
     */
   override def :=*[EY](
-    h: OutwardNodeHandle[DI, UI, EY, BI]
+    h:          OutwardNodeHandle[DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -145,14 +147,15 @@ trait NodeHandle[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data]
 
   /** Connects a full node with an output => an output.
     *
-    * <---< :*=* <---x  ==  <---x
-    * [[BIND_FLEX]] this node as sink, [[BIND_FLEX]] that node as source.
+    * <---< :*=* <---x == <---x [[BIND_FLEX]] this node as sink, [[BIND_FLEX]] that node as source.
     *
-    * @param h A source node also without sink handle.
-    * @return A [[OutwardNodeHandle]] with this node as `outwardNode`.
+    * @param h
+    *   A source node also without sink handle.
+    * @return
+    *   A [[OutwardNodeHandle]] with this node as `outwardNode`.
     */
   override def :*=*[EY](
-    h: OutwardNodeHandle[DI, UI, EY, BI]
+    h:          OutwardNodeHandle[DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -163,9 +166,12 @@ object NodeHandle {
 
   /** generate a [[NodeHandle]] by combining an [[InwardNodeHandle]] and an [[OutwardNodeHandle]].
     *
-    * @param i Inward node handle.
-    * @param o Outward node handle.
-    * @return [[NodeHandlePair]] with `inwardNode` of `i`, `outwardNode` of `o`.
+    * @param i
+    *   Inward node handle.
+    * @param o
+    *   Outward node handle.
+    * @return
+    *   [[NodeHandlePair]] with `inwardNode` of `i`, `outwardNode` of `o`.
     */
   def apply[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
     i: InwardNodeHandle[DI, UI, EI, BI],
@@ -203,8 +209,8 @@ trait InwardNodeHandle[DI, UI, EI, BI <: Data] extends NoHandle {
 
   /** Bind this node to an [[OutwardNodeHandle]]. */
   protected def bind[EY](
-    h:       OutwardNodeHandle[DI, UI, EY, BI],
-    binding: NodeBinding
+    h:          OutwardNodeHandle[DI, UI, EY, BI],
+    binding:    NodeBinding
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -212,14 +218,15 @@ trait InwardNodeHandle[DI, UI, EI, BI <: Data] extends NoHandle {
 
   /** Connect an input node with a full node => inward node handle.
     *
-    * x---< := <---<  == x---<
-    * [[BIND_ONCE]] this node as sink, [[BIND_ONCE]] that node as source.
+    * x---< := <---< == x---< [[BIND_ONCE]] this node as sink, [[BIND_ONCE]] that node as source.
     *
-    * @param h A source node also with sink handle.
-    * @return A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
+    * @param h
+    *   A source node also with sink handle.
+    * @return
+    *   A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
     */
   def :=[DX, UX, EX, BX <: Data, EY](
-    h: NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
+    h:          NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -227,14 +234,15 @@ trait InwardNodeHandle[DI, UI, EI, BI <: Data] extends NoHandle {
 
   /** Connect an input node with a full node => an input node.
     *
-    * x---< :*= <---<  == x---<
-    * [[BIND_STAR]] this node as sink, [[BIND_QUERY]] that node as source.
+    * x---< :*= <---< == x---< [[BIND_STAR]] this node as sink, [[BIND_QUERY]] that node as source.
     *
-    * @param h A Source node also with sink handle.
-    * @return A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
+    * @param h
+    *   A Source node also with sink handle.
+    * @return
+    *   A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
     */
   def :*=[DX, UX, EX, BX <: Data, EY](
-    h: NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
+    h:          NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -242,14 +250,15 @@ trait InwardNodeHandle[DI, UI, EI, BI <: Data] extends NoHandle {
 
   /** Connect an input node with a full node => an inward node handle.
     *
-    * x---< :=* <---<  == x---<
-    * [[BIND_QUERY]] this node as sink, [[BIND_STAR]] that node as source.
+    * x---< :=* <---< == x---< [[BIND_QUERY]] this node as sink, [[BIND_STAR]] that node as source.
     *
-    * @param h A source node also with sink handle.
-    * @return A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
+    * @param h
+    *   A source node also with sink handle.
+    * @return
+    *   A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
     */
   def :=*[DX, UX, EX, BX <: Data, EY](
-    h: NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
+    h:          NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -257,14 +266,15 @@ trait InwardNodeHandle[DI, UI, EI, BI <: Data] extends NoHandle {
 
   /** Connect an input node with a full node => an input node.
     *
-    * x---< :*=* <---<  == x---<
-    * [[BIND_FLEX]] this node as sink, [[BIND_FLEX]] that node as source.
+    * x---< :*=* <---< == x---< [[BIND_FLEX]] this node as sink, [[BIND_FLEX]] that node as source.
     *
-    * @param h A source node also with sink handle.
-    * @return A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
+    * @param h
+    *   A source node also with sink handle.
+    * @return
+    *   A [[NodeHandle]] with that node as `inwardNode`, this node as `outwardNode`.
     */
   def :*=*[DX, UX, EX, BX <: Data, EY](
-    h: NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
+    h:          NodeHandle[DX, UX, EX, BX, DI, UI, EY, BI]
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -272,49 +282,73 @@ trait InwardNodeHandle[DI, UI, EI, BI <: Data] extends NoHandle {
 
   /** Connect an input node with output node => no node.
     *
-    * x---< := <---x  == x---x
-    * [[BIND_ONCE]] this node as sink, [[BIND_ONCE]] that node as source.
+    * x---< := <---x == x---x [[BIND_ONCE]] this node as sink, [[BIND_ONCE]] that node as source.
     *
-    * @param h A source node also without sink handle.
-    * @return A [[NoHandle]] since neither side can bind to a node.
+    * @param h
+    *   A source node also without sink handle.
+    * @return
+    *   A [[NoHandle]] since neither side can bind to a node.
     */
-  def :=[EY](h: OutwardNodeHandle[DI, UI, EY, BI])(implicit p: Parameters, sourceInfo: SourceInfo): NoHandle = {
+  def :=[EY](
+    h:          OutwardNodeHandle[DI, UI, EY, BI]
+  )(
+    implicit p: Parameters,
+    sourceInfo: SourceInfo
+  ): NoHandle = {
     bind(h, BIND_ONCE); NoHandleObject
   }
 
   /** Connect an input node with output node => no node.
     *
-    * x---< :*= <---x  == x---x
-    * [[BIND_STAR]] this node as sink, [[BIND_QUERY]] that node as source.
+    * x---< :*= <---x == x---x [[BIND_STAR]] this node as sink, [[BIND_QUERY]] that node as source.
     *
-    * @param h A source node also without sink handle.
-    * @return A [[NoHandle]] since neither side can bind to a node.
+    * @param h
+    *   A source node also without sink handle.
+    * @return
+    *   A [[NoHandle]] since neither side can bind to a node.
     */
-  def :*=[EY](h: OutwardNodeHandle[DI, UI, EY, BI])(implicit p: Parameters, sourceInfo: SourceInfo): NoHandle = {
+  def :*=[EY](
+    h:          OutwardNodeHandle[DI, UI, EY, BI]
+  )(
+    implicit p: Parameters,
+    sourceInfo: SourceInfo
+  ): NoHandle = {
     bind(h, BIND_STAR); NoHandleObject
   }
 
   /** Connect an input node with output node => no node.
     *
-    * x---< :=* <---x  == x---x
-    * [[BIND_QUERY]] this node as sink, [[BIND_STAR]] that node as source.
+    * x---< :=* <---x == x---x [[BIND_QUERY]] this node as sink, [[BIND_STAR]] that node as source.
     *
-    * @param h A source node also without sink handle.
-    * @return A [[NoHandle]] since neither side can bind to another node.
+    * @param h
+    *   A source node also without sink handle.
+    * @return
+    *   A [[NoHandle]] since neither side can bind to another node.
     */
-  def :=*[EY](h: OutwardNodeHandle[DI, UI, EY, BI])(implicit p: Parameters, sourceInfo: SourceInfo): NoHandle = {
+  def :=*[EY](
+    h:          OutwardNodeHandle[DI, UI, EY, BI]
+  )(
+    implicit p: Parameters,
+    sourceInfo: SourceInfo
+  ): NoHandle = {
     bind(h, BIND_QUERY); NoHandleObject
   }
 
   /** Connect an input node with output node => no node.
     *
-    * x---< :*=* <---x  == x---x
-    * [[BIND_FLEX]] this node as sink, [[BIND_FLEX]] that node as source.
+    * x---< :*=* <---x == x---x [[BIND_FLEX]] this node as sink, [[BIND_FLEX]] that node as source.
     *
-    * @param h A source node also without sink handle.
-    * @return A [[NoHandle]] since neither side can bind to another node.
+    * @param h
+    *   A source node also without sink handle.
+    * @return
+    *   A [[NoHandle]] since neither side can bind to another node.
     */
-  def :*=*[EY](h: OutwardNodeHandle[DI, UI, EY, BI])(implicit p: Parameters, sourceInfo: SourceInfo): NoHandle = {
+  def :*=*[EY](
+    h:          OutwardNodeHandle[DI, UI, EY, BI]
+  )(
+    implicit p: Parameters,
+    sourceInfo: SourceInfo
+  ): NoHandle = {
     bind(h, BIND_FLEX); NoHandleObject
   }
 }

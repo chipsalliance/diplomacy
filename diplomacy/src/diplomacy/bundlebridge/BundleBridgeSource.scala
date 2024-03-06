@@ -7,7 +7,10 @@ import chisel3.reflect.DataMirror.internal.chiselTypeClone
 import org.chipsalliance.diplomacy.ValName
 import org.chipsalliance.diplomacy.nodes._
 
-case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implicit valName: sourcecode.Name)
+case class BundleBridgeSource[T <: Data](
+  genOpt:           Option[() => T] = None
+)(
+  implicit valName: sourcecode.Name)
     extends SourceNode(new BundleBridgeImp[T])(Seq(BundleBridgeParams(genOpt))) {
   def bundle: T = out(0)._1
 
@@ -15,7 +18,10 @@ case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implici
     DataMirror.directionOf(elt) == ActualDirection.Unspecified
   }
 
-  def makeIO()(implicit valName: sourcecode.Name): T = {
+  def makeIO(
+  )(
+    implicit valName: sourcecode.Name
+  ): T = {
     val io: T = IO(if (inferInput) Input(chiselTypeOf(bundle)) else Flipped(chiselTypeClone(bundle)))
     io.suggestName(valName.value)
     bundle <> io
@@ -24,7 +30,10 @@ case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implici
   def makeIO(name: String): T = makeIO()(ValName(name))
 
   private var doneSink = false
-  def makeSink()(implicit p: Parameters) = {
+  def makeSink(
+  )(
+    implicit p: Parameters
+  ) = {
     require(!doneSink, "Can only call makeSink() once")
     doneSink = true
     val sink = BundleBridgeSink[T]()
@@ -34,10 +43,17 @@ case class BundleBridgeSource[T <: Data](genOpt: Option[() => T] = None)(implici
 }
 
 object BundleBridgeSource {
-  def apply[T <: Data]()(implicit valName: sourcecode.Name): BundleBridgeSource[T] = {
+  def apply[T <: Data](
+  )(
+    implicit valName: sourcecode.Name
+  ): BundleBridgeSource[T] = {
     BundleBridgeSource(None)
   }
-  def apply[T <: Data](gen: () => T)(implicit valName: sourcecode.Name): BundleBridgeSource[T] = {
+  def apply[T <: Data](
+    gen:              () => T
+  )(
+    implicit valName: sourcecode.Name
+  ): BundleBridgeSource[T] = {
     BundleBridgeSource(Some(gen))
   }
 }

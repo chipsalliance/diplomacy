@@ -11,17 +11,19 @@ import scala.collection.mutable.ListBuffer
 
 /** [[BaseNode]] is the abstract base class of the type hierarchy of diplomacy node classes.
   *
-  * @param valName [[ValName]] of this node, used by naming inference.
+  * @param valName
+  *   [[ValName]] of this node, used by naming inference.
   */
-abstract class BaseNode(implicit val valName: sourcecode.Name) {
+abstract class BaseNode(
+  implicit val valName: sourcecode.Name) {
 
   /** All subclasses of [[BaseNode]]s are expected to be instantiated only within [[LazyModule]]s.
     *
-    * Sometimes one wants to view the entire diplomacy graph in a way
-    * where you do not care about the specific types of the edges.
-    * [[BaseNode]]s are type-erased and provide this view.
+    * Sometimes one wants to view the entire diplomacy graph in a way where you do not care about the specific types of
+    * the edges. [[BaseNode]]s are type-erased and provide this view.
     *
-    * @return The [[LazyModule]] which contains this Node.
+    * @return
+    *   The [[LazyModule]] which contains this Node.
     */
   val scope: Option[LazyModule] = LazyModule.scope
 
@@ -41,11 +43,12 @@ abstract class BaseNode(implicit val valName: sourcecode.Name) {
 
   /** Instantiate this node.
     *
-    * This happens after all nodes connections have been made and we are ready to perform parameter negotiation.
-    * This also determines which connections need to leave this node's LazyScope and cross hierarchical boundaries.
-    * That information is captured in [[Dangle]]s which are returned from this function.
+    * This happens after all nodes connections have been made and we are ready to perform parameter negotiation. This
+    * also determines which connections need to leave this node's LazyScope and cross hierarchical boundaries. That
+    * information is captured in [[Dangle]]s which are returned from this function.
     *
-    * @return A sequence of [[Dangle]]s from this node that leave this [[BaseNode]]'s [[LazyScope]].
+    * @return
+    *   A sequence of [[Dangle]]s from this node that leave this [[BaseNode]]'s [[LazyScope]].
     */
   protected[diplomacy] def instantiate(): Seq[Dangle]
 
@@ -80,20 +83,24 @@ abstract class BaseNode(implicit val valName: sourcecode.Name) {
 
   /** Determines the name to be used in elements of auto-punched bundles.
     *
-    * It takes the name of the node as determined from [[valName]],
-    * converts camel case into snake case, and strips "Node" or "NodeOpt" suffixes.
+    * It takes the name of the node as determined from [[valName]], converts camel case into snake case, and strips
+    * "Node" or "NodeOpt" suffixes.
     */
   def wirePrefix: String = {
     val camelCase = "([a-z])([A-Z])".r
-    val decamel = camelCase.replaceAllIn(valName.value, _ match { case camelCase(l, h) => l + "_" + h })
-    val name = decamel.toLowerCase.stripSuffix("_opt").stripSuffix("node").stripSuffix("_")
+    val decamel   = camelCase.replaceAllIn(valName.value, _ match { case camelCase(l, h) => l + "_" + h })
+    val name      = decamel.toLowerCase.stripSuffix("_opt").stripSuffix("node").stripSuffix("_")
     if (name.isEmpty) "" else name + "_"
   }
 
-  /** @return [[BaseNode]] description, which should be defined by subclasses and is generally expected to be a constant. */
+  /** @return
+    *   [[BaseNode]] description, which should be defined by subclasses and is generally expected to be a constant.
+    */
   def description: String
 
-  /** @return [[BaseNode]] instance description, which can be overridden with more detailed information about each node. */
+  /** @return
+    *   [[BaseNode]] instance description, which can be overridden with more detailed information about each node.
+    */
   def formatNode: String = ""
 
   /** @return Metadata to visualize inward edges into this node. */
@@ -102,39 +109,43 @@ abstract class BaseNode(implicit val valName: sourcecode.Name) {
   /** @return Metadata to visualize outward edges from this node. */
   def outputs: Seq[(BaseNode, RenderedEdge)]
 
-  /** @return Whether this node can handle [[BIND_FLEX]] type connections on either side.
+  /** @return
+    *   Whether this node can handle [[BIND_FLEX]] type connections on either side.
     *
-    *  For example, a node `b` will have [[flexibleArityDirection]] be `true` if both are legal:
-    *    `a :*=* b :*= c`, which resolves to `a :*= b :*= c`
-    *    or
-    *    `a :=* b :*=* c`, which resolves to `a :=* b :=* c`
+    * For example, a node `b` will have [[flexibleArityDirection]] be `true` if both are legal: `a :*=* b :*= c`, which
+    * resolves to `a :*= b :*= c` or `a :=* b :*=* c`, which resolves to `a :=* b :=* c`
     *
-    *  If this is `false`, the node can only support `:*=*` if it connects to a node with `flexibleArityDirection = true`
+    * If this is `false`, the node can only support `:*=*` if it connects to a node with `flexibleArityDirection = true`
     */
   protected[diplomacy] def flexibleArityDirection: Boolean = false
 
-  /** @return The sink cardinality.
+  /** @return
+    *   The sink cardinality.
     *
     * How many times is this node used as a sink.
     */
   protected[diplomacy] val sinkCard: Int
 
-  /** @return The source cardinality.
+  /** @return
+    *   The source cardinality.
     *
     * How many times is this node used as a source.
     */
   protected[diplomacy] val sourceCard: Int
 
-  /** @return The "flex" cardinality.
+  /** @return
+    *   The "flex" cardinality.
     *
-    * How many times is this node used in a way that could be either source or sink, depending on final
-    * directional determination.
+    * How many times is this node used in a way that could be either source or sink, depending on final directional
+    * determination.
     */
   protected[diplomacy] val flexes: Seq[BaseNode]
 
   /** Resolves the flex to be either source or sink.
     *
-    * @return A value >= 0 if it is sink cardinality, a negative value for source cardinality. The magnitude of the value does not matter.
+    * @return
+    *   A value >= 0 if it is sink cardinality, a negative value for source cardinality. The magnitude of the value does
+    *   not matter.
     */
   protected[diplomacy] val flexOffset: Int
 }
@@ -147,15 +158,18 @@ trait FormatNode[I <: FormatEdge, O <: FormatEdge] extends BaseNode {
   def edges: Edges[I, O]
 
   /** Format the edges of the [[BaseNode]] for emission (generally in GraphML). */
-  override def formatNode = if (circuitIdentity) ""
-  else {
-    edges.out.map(currEdge => "On Output Edge:\n\n" + currEdge.formatEdge).mkString +
-      "\n---------------------------------------------\n\n" +
-      edges.in.map(currEdge => "On Input Edge:\n\n" + currEdge.formatEdge).mkString
-  }
+  override def formatNode =
+    if (circuitIdentity) ""
+    else {
+      edges.out.map(currEdge => "On Output Edge:\n\n" + currEdge.formatEdge).mkString +
+        "\n---------------------------------------------\n\n" +
+        edges.in.map(currEdge => "On Input Edge:\n\n" + currEdge.formatEdge).mkString
+    }
 }
 
-/** A Node that defines inward behavior, meaning that it can have edges coming into it and be used on the left side of binding expressions. */
+/** A Node that defines inward behavior, meaning that it can have edges coming into it and be used on the left side of
+  * binding expressions.
+  */
 trait InwardNode[DI, UI, BI <: Data] extends BaseNode {
 
   /** accumulates input connections. */
@@ -175,14 +189,17 @@ trait InwardNode[DI, UI, BI <: Data] extends BaseNode {
     *
     * Can only be called before [[iBindings]] is accessed.
     *
-    * @param index   index of this [[InwardNode]] in that [[OutwardNode]].
-    * @param node    the [[OutwardNode]] to bind to this [[InwardNode]].
-    * @param binding [[NodeBinding]] type.
+    * @param index
+    *   index of this [[InwardNode]] in that [[OutwardNode]].
+    * @param node
+    *   the [[OutwardNode]] to bind to this [[InwardNode]].
+    * @param binding
+    *   [[NodeBinding]] type.
     */
   protected[diplomacy] def iPush(
-    index:   Int,
-    node:    OutwardNode[DI, UI, BI],
-    binding: NodeBinding
+    index:      Int,
+    node:       OutwardNode[DI, UI, BI],
+    binding:    NodeBinding
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -201,15 +218,15 @@ trait InwardNode[DI, UI, BI <: Data] extends BaseNode {
 
   /** Ends the binding accumulation stage and returns all the input bindings to this node.
     *
-    * Evaluating this lazy val will mark the inwards bindings as frozen,
-    * preventing subsequent bindings from being created via [[iPush]].
+    * Evaluating this lazy val will mark the inwards bindings as frozen, preventing subsequent bindings from being
+    * created via [[iPush]].
     *
     * The bindings are each a tuple of:
-    * - numeric index of this binding in the other end of [[OutwardNode]].
-    * - [[OutwardNode]] on the other end of this binding.
-    * - [[NodeBinding]] describing the type of binding.
-    * - A view of [[Parameters]] where the binding occurred.
-    * - [[SourceInfo]] for source-level error reporting.
+    *   - numeric index of this binding in the other end of [[OutwardNode]].
+    *   - [[OutwardNode]] on the other end of this binding.
+    *   - [[NodeBinding]] describing the type of binding.
+    *   - A view of [[Parameters]] where the binding occurred.
+    *   - [[SourceInfo]] for source-level error reporting.
     */
   protected[diplomacy] lazy val iBindings
     : immutable.Seq[(Int, OutwardNode[DI, UI, BI], NodeBinding, Parameters, SourceInfo)] = {
@@ -221,15 +238,17 @@ trait InwardNode[DI, UI, BI <: Data] extends BaseNode {
 
   /** A mapping to convert Node binding index to port range.
     *
-    * @return a sequence of tuple of mapping, the item in each a tuple of:
-    *         - index: the index of connected [[OutwardNode]]
-    *         - element: port range of connected [[OutwardNode]]
+    * @return
+    *   a sequence of tuple of mapping, the item in each a tuple of:
+    *   - index: the index of connected [[OutwardNode]]
+    *   - element: port range of connected [[OutwardNode]]
     */
   protected[diplomacy] val iPortMapping: Seq[(Int, Int)]
 
   /** "Forward" an input connection through this node so that the node can be removed from the graph.
     *
-    * @return None if no forwarding is needing.
+    * @return
+    *   None if no forwarding is needing.
     */
   protected[diplomacy] def iForward(x: Int): Option[(Int, InwardNode[DI, UI, BI])] = None
 
@@ -253,12 +272,14 @@ trait InwardNode[DI, UI, BI <: Data] extends BaseNode {
 
   /** Create a binding from this node to an [[OutwardNode]].
     *
-    * @param h       The [[OutwardNode]] to bind to.
-    * @param binding [[NodeBinding]] the type of binding.
+    * @param h
+    *   The [[OutwardNode]] to bind to.
+    * @param binding
+    *   [[NodeBinding]] the type of binding.
     */
   protected[diplomacy] def bind(
-    h:       OutwardNode[DI, UI, BI],
-    binding: NodeBinding
+    h:          OutwardNode[DI, UI, BI],
+    binding:    NodeBinding
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -285,14 +306,17 @@ trait OutwardNode[DO, UO, BO <: Data] extends BaseNode {
     *
     * Can only be called before [[oBindings]] is accessed.
     *
-    * @param index   Index of this [[OutwardNode]] in that [[InwardNode]].
-    * @param node    [[InwardNode]] to bind to.
-    * @param binding Binding type.
+    * @param index
+    *   Index of this [[OutwardNode]] in that [[InwardNode]].
+    * @param node
+    *   [[InwardNode]] to bind to.
+    * @param binding
+    *   Binding type.
     */
   protected[diplomacy] def oPush(
-    index:   Int,
-    node:    InwardNode[DO, UO, BO],
-    binding: NodeBinding
+    index:      Int,
+    node:       InwardNode[DO, UO, BO],
+    binding:    NodeBinding
   )(
     implicit p: Parameters,
     sourceInfo: SourceInfo
@@ -311,15 +335,15 @@ trait OutwardNode[DO, UO, BO <: Data] extends BaseNode {
 
   /** Ends the binding accumulation stage and returns all the output bindings to this node.
     *
-    * Evaluating this lazy val will mark the outward bindings as frozen,
-    * preventing subsequent bindings from being created via [[oPush]].
+    * Evaluating this lazy val will mark the outward bindings as frozen, preventing subsequent bindings from being
+    * created via [[oPush]].
     *
     * The bindings are each a tuple of:
-    * - numeric index of this binding in the other end of [[InwardNode]].
-    * - [[InwardNode]] on the other end of this binding
-    * - [[NodeBinding]] describing the type of binding
-    * - A view of [[Parameters]] where the binding occurred.
-    * - [[SourceInfo]] for source-level error reporting
+    *   - numeric index of this binding in the other end of [[InwardNode]].
+    *   - [[InwardNode]] on the other end of this binding
+    *   - [[NodeBinding]] describing the type of binding
+    *   - A view of [[Parameters]] where the binding occurred.
+    *   - [[SourceInfo]] for source-level error reporting
     */
   protected[diplomacy] lazy val oBindings: Seq[(Int, InwardNode[DO, UO, BO], NodeBinding, Parameters, SourceInfo)] = {
     oRealized = true; accPO.result()
@@ -330,15 +354,17 @@ trait OutwardNode[DO, UO, BO <: Data] extends BaseNode {
 
   /** A mapping to convert Node binding index to port range.
     *
-    * @return a sequence of tuple of mapping, the item in each a tuple of:
-    *         - index: the index of connected [[InwardNode]]
-    *         - element: port range of connected [[InwardNode]]
+    * @return
+    *   a sequence of tuple of mapping, the item in each a tuple of:
+    *   - index: the index of connected [[InwardNode]]
+    *   - element: port range of connected [[InwardNode]]
     */
   protected[diplomacy] val oPortMapping: Seq[(Int, Int)]
 
   /** "Forward" an output connection through this node so that the node can be removed from the graph.
     *
-    * @return None if no forwarding is needed.
+    * @return
+    *   None if no forwarding is needed.
     */
   protected[diplomacy] def oForward(x: Int): Option[(Int, OutwardNode[DO, UO, BO])] = None
 

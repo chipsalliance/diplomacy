@@ -15,7 +15,7 @@ trait LazyScope {
     // [[LazyModule.scope]] stack push.
     LazyModule.scope = Some(this)
     // Evaluate [[body]] in the current `scope`, saving the result to [[out]].
-    val out = body
+    val out   = body
     // Check that the `scope` after evaluating `body` is the same as when we started.
     require(LazyModule.scope.isDefined, s"LazyScope $name tried to exit, but scope was empty!")
     require(
@@ -28,39 +28,62 @@ trait LazyScope {
   }
 }
 
-/** Used to automatically create a level of module hierarchy (a [[SimpleLazyModule]]) within which [[LazyModule]]s can be instantiated and connected.
+/** Used to automatically create a level of module hierarchy (a [[SimpleLazyModule]]) within which [[LazyModule]]s can
+  * be instantiated and connected.
   *
-  * It will instantiate a [[SimpleLazyModule]] to manage evaluation of `body` and evaluate `body` code snippets in this scope.
+  * It will instantiate a [[SimpleLazyModule]] to manage evaluation of `body` and evaluate `body` code snippets in this
+  * scope.
   */
 object LazyScope {
 
   /** Create a [[LazyScope]] with an implicit instance name.
     *
-    * @param body    code executed within the generated [[SimpleLazyModule]].
-    * @param valName instance name of generated [[SimpleLazyModule]].
-    * @param p       [[Parameters]] propagated to [[SimpleLazyModule]].
+    * @param body
+    *   code executed within the generated [[SimpleLazyModule]].
+    * @param valName
+    *   instance name of generated [[SimpleLazyModule]].
+    * @param p
+    *   [[Parameters]] propagated to [[SimpleLazyModule]].
     */
-  def apply[T](body: => T)(implicit valName: sourcecode.Name, p: Parameters): T = {
+  def apply[T](
+    body:             => T
+  )(
+    implicit valName: sourcecode.Name,
+    p:                Parameters
+  ): T = {
     apply(valName.toString, "SimpleLazyModule", None)(body)(p)
   }
 
   /** Create a [[LazyScope]] with an explicitly defined instance name.
     *
-    * @param name      instance name of generated [[SimpleLazyModule]].
-    * @param body      code executed within the generated `SimpleLazyModule`
-    * @param p         [[Parameters]] propagated to [[SimpleLazyModule]].
+    * @param name
+    *   instance name of generated [[SimpleLazyModule]].
+    * @param body
+    *   code executed within the generated `SimpleLazyModule`
+    * @param p
+    *   [[Parameters]] propagated to [[SimpleLazyModule]].
     */
-  def apply[T](name: String)(body: => T)(implicit p: Parameters): T = {
+  def apply[T](
+    name:       String
+  )(body:       => T
+  )(
+    implicit p: Parameters
+  ): T = {
     apply(name, "SimpleLazyModule", None)(body)(p)
   }
 
   /** Create a [[LazyScope]] with an explicit instance and class name, and control inlining.
     *
-    * @param name instance name of generated [[SimpleLazyModule]].
-    * @param desiredModuleName class name of generated [[SimpleLazyModule]].
-    * @param overrideInlining tell FIRRTL that this [[SimpleLazyModule]]'s module should be inlined.
-    * @param body code executed within the generated `SimpleLazyModule`
-    * @param p [[Parameters]] propagated to [[SimpleLazyModule]].
+    * @param name
+    *   instance name of generated [[SimpleLazyModule]].
+    * @param desiredModuleName
+    *   class name of generated [[SimpleLazyModule]].
+    * @param overrideInlining
+    *   tell FIRRTL that this [[SimpleLazyModule]]'s module should be inlined.
+    * @param body
+    *   code executed within the generated `SimpleLazyModule`
+    * @param p
+    *   [[Parameters]] propagated to [[SimpleLazyModule]].
     */
   def apply[T](
     name:              String,
@@ -68,11 +91,11 @@ object LazyScope {
     overrideInlining:  Option[Boolean] = None
   )(body:              => T
   )(
-    implicit p: Parameters
+    implicit p:        Parameters
   ): T = {
     val scope = LazyModule(new SimpleLazyModule with LazyScope {
       override lazy val desiredName = desiredModuleName
-      override def shouldBeInlined = overrideInlining.getOrElse(super.shouldBeInlined)
+      override def shouldBeInlined  = overrideInlining.getOrElse(super.shouldBeInlined)
     }).suggestName(name)
     scope {
       body
@@ -83,10 +106,16 @@ object LazyScope {
     *
     * For example, we might want to control a set of children's clocks but then not keep the parent wrapper.
     *
-    * @param body      code executed within the generated `SimpleLazyModule`
-    * @param p         [[Parameters]] propagated to [[SimpleLazyModule]].
+    * @param body
+    *   code executed within the generated `SimpleLazyModule`
+    * @param p
+    *   [[Parameters]] propagated to [[SimpleLazyModule]].
     */
-  def inline[T](body: => T)(implicit p: Parameters): T = {
+  def inline[T](
+    body:       => T
+  )(
+    implicit p: Parameters
+  ): T = {
     apply("noname", "ShouldBeInlined", Some(false))(body)(p)
   }
 }
