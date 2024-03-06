@@ -35,7 +35,7 @@ let
           ./../../common.sc
         ];
       }).outPath;
-      millDepsHash = "sha256-3zuX/+I1NjoGkGFPd92GxR/UmQ2RTxQoT0pkhiXclhg=";
+      millDepsHash = "sha256-5CagEixOPT5AlGInTqCBhts2hko1FBqKFkMRYYpma2o=";
       nativeBuildInputs = [ submodules.setupHook ];
     };
 

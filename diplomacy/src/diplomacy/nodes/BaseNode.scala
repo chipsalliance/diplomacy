@@ -4,7 +4,7 @@ import org.chipsalliance.cde.config.Parameters
 import chisel3.Data
 import chisel3.experimental.SourceInfo
 import org.chipsalliance.diplomacy.lazymodule.LazyModule
-import org.chipsalliance.diplomacy.{sourceLine, ValName}
+import org.chipsalliance.diplomacy.sourceLine
 
 import scala.collection.immutable
 import scala.collection.mutable.ListBuffer

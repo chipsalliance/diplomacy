@@ -31,4 +31,9 @@ trait DiplomacyModule extends HasChisel {
   def sourcecodeIvy: Dep
 
   override def ivyDeps = T(super.ivyDeps() ++ Some(sourcecodeIvy))
+
+  override def scalacOptions = T(
+    super.scalacOptions() ++ Seq("-Wunused")
+  )
+
 }

@@ -5,6 +5,8 @@ import mill.scalalib.publish._
 
 import scalafmt._
 
+import $ivy.`com.goyeau::mill-scalafix::0.3.2`
+import com.goyeau.mill.scalafix.ScalafixModule
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.11:0.4.0`
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 
@@ -47,6 +49,7 @@ trait Diplomacy
     extends millbuild.common.DiplomacyModule
     with DiplomacyPublishModule
     with ScalafmtModule
+    with ScalafixModule
     with Cross.Module[String] {
 
   def scalaVersion: T[String] = T(v.scala)

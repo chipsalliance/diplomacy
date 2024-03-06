@@ -3,7 +3,6 @@ package org.chipsalliance.diplomacy.nodes
 import chisel3.Data
 import org.chipsalliance.cde.config.{Field, Parameters}
 import chisel3.experimental.SourceInfo
-import org.chipsalliance.diplomacy.lazymodule.LazyModuleImp
 import org.chipsalliance.diplomacy.sourceLine
 
 /** One side metadata of a [[Dangle]].
@@ -619,7 +618,7 @@ private[diplomacy] abstract class MixedNode[DI, UI, EI, BI <: Data, DO, UO, EO, 
   ): Unit = {
     val x    = this // x := y
     val y    = h
-    val info = sourceLine(sourceInfo, " at ", "")
+    sourceLine(sourceInfo, " at ", "")
     val i    = x.iPushed
     val o    = y.oPushed
     y.oPush(

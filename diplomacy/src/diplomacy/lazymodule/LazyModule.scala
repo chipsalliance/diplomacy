@@ -5,7 +5,7 @@ package org.chipsalliance.diplomacy.lazymodule
 import org.chipsalliance.cde.config.Parameters
 import chisel3.experimental.{SourceInfo, UnlocatableSourceInfo}
 import org.chipsalliance.diplomacy.nodes.{BaseNode, RenderedEdge}
-import org.chipsalliance.diplomacy.{sourceLine, ValName}
+import org.chipsalliance.diplomacy.sourceLine
 
 /** While the [[diplomacy]] package allows fairly abstract parameter negotiation while constructing a DAG,
   * [[LazyModule]] builds on top of the DAG annotated with the negotiated parameters and leverage's Scala's lazy

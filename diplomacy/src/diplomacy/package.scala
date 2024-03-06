@@ -4,7 +4,7 @@ package org.chipsalliance
 import org.chipsalliance.cde.config.Parameters
 import chisel3.experimental.{SourceInfo, SourceLine}
 import org.chipsalliance.diplomacy.lazymodule.ModuleValue
-import org.chipsalliance.diplomacy.nodes.{MonitorsEnabled, NodeHandle, NodeImp, RenderFlipped}
+import org.chipsalliance.diplomacy.nodes.{MonitorsEnabled, RenderFlipped}
 
 import scala.language.implicitConversions
 
