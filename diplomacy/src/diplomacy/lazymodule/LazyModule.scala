@@ -2,13 +2,16 @@
 
 package org.chipsalliance.diplomacy.lazymodule
 
-import org.chipsalliance.cde.config.Parameters
 import chisel3.experimental.{SourceInfo, UnlocatableSourceInfo}
-import org.chipsalliance.diplomacy.nodes.{BaseNode, RenderedEdge}
-import org.chipsalliance.diplomacy.sourceLine
+import org.chipsalliance.cde.config.Parameters
 
-/** While the [[diplomacy]] package allows fairly abstract parameter negotiation while constructing a DAG,
-  * [[LazyModule]] builds on top of the DAG annotated with the negotiated parameters and leverage's Scala's lazy
+import org.chipsalliance.diplomacy.{sourceLine, ValName}
+import org.chipsalliance.diplomacy.nodes.{BaseNode, Dangle, RenderedEdge}
+
+import scala.collection.immutable.SortedMap
+
+/** While the [[freechips.rocketchip.diplomacy]] package allows fairly abstract parameter negotiation while constructing
+  * a DAG, [[LazyModule]] builds on top of the DAG annotated with the negotiated parameters and leverage's Scala's lazy
   * evaluation property to split Chisel module generation into two phases:
   *
   *   - Phase 1 (diplomatic) states parameters, hierarchy, and connections:
@@ -39,6 +42,11 @@ abstract class LazyModule(
   /** Parent of this LazyModule. If this instance is at the top of the hierarchy, this will be [[None]]. */
   protected[diplomacy] val parent: Option[LazyModule] = LazyModule.scope
 
+  /** If set, the LazyModule this LazyModule will be a clone of Note that children of a cloned module will also have
+    * this set
+    */
+  protected[diplomacy] var cloneProto: Option[LazyModule] = None
+
   /** Code snippets from [[InModuleBody]] injection. */
   protected[diplomacy] var inModuleBody: List[() => Unit] = List[() => Unit]()
 
@@ -66,7 +74,8 @@ abstract class LazyModule(
   /** Finds the name of the first non-anonymous Scala class while walking up the class hierarchy. */
   private def findClassName(c: Class[_]): String = {
     val n = c.getName.split('.').last
-    if (n.contains('$')) findClassName(c.getSuperclass) else n
+    if (n.contains('$')) findClassName(c.getSuperclass)
+    else n
   }
 
   /** Scala class name of this instance. */
@@ -84,11 +93,16 @@ abstract class LazyModule(
   def line: String = sourceLine(info)
 
   // Accessing these names can only be done after circuit elaboration!
-  /** Module name in verilog, used in GraphML. */
-  lazy val moduleName: String = module.name
+  /** Module name in verilog, used in GraphML. For cloned lazyModules, this is the name of the prototype
+    */
+  lazy val moduleName: String = cloneProto.map(_.module.name).getOrElse(module.name)
 
-  /** Hierarchical path of this instance, used in GraphML. */
-  lazy val pathName: String = module.pathName
+  /** Hierarchical path of this instance, used in GraphML. For cloned modules, construct this manually (since
+    * this.module should not be evaluated)
+    */
+  lazy val pathName: String = cloneProto
+    .map(p => s"${parent.get.pathName}.${p.instanceName}")
+    .getOrElse(module.pathName)
 
   /** Instance name in verilog. Should only be accessed after circuit elaboration. */
   lazy val instanceName: String = pathName.split('.').last
@@ -99,6 +113,29 @@ abstract class LazyModule(
     * the beginning of phase 2.
     */
   def module: LazyModuleImpLike
+
+  /** Recursively traverse all child LazyModules and Nodes of this LazyModule to construct the set of empty [[Dangle]]'s
+    * that are this module's top-level IO This is effectively doing the same thing as [[LazyModuleImp.instantiate]], but
+    * without constructing any [[Module]]'s
+    */
+  protected[diplomacy] def cloneDangles(): List[Dangle] = {
+    children.foreach(c => require(c.cloneProto.isDefined, s"${c.info}, ${c.parent.get.info}"))
+    val childDangles = children.reverse.flatMap { c => c.cloneDangles() }
+    val nodeDangles  = nodes.reverse.flatMap(n => n.cloneDangles())
+    val allDangles   = nodeDangles ++ childDangles
+    val pairing      = SortedMap(allDangles.groupBy(_.source).toSeq: _*)
+    val done         = Set() ++ pairing.values.filter(_.size == 2).map {
+      case Seq(a, b) =>
+        require(a.flipped != b.flipped)
+        a.source
+      case _         => None
+    }
+    val forward      = allDangles.filter(d => !done(d.source))
+    val dangles      = forward.map { d =>
+      d.copy(name = suggestedName + "_" + d.name)
+    }
+    dangles
+  }
 
   /** Whether to omit generating the GraphML for this [[LazyModule]].
     *
@@ -261,7 +298,7 @@ object LazyModule {
   def apply[T <: LazyModule](
     bc:               T
   )(
-    implicit valName: sourcecode.Name,
+    implicit valName: ValName,
     sourceInfo:       SourceInfo
   ): T = {
     // Make sure the user puts [[LazyModule]] around modules in the correct order.

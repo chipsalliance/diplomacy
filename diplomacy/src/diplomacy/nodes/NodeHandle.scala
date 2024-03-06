@@ -1,8 +1,8 @@
 package org.chipsalliance.diplomacy.nodes
 
 import chisel3.Data
-import org.chipsalliance.cde.config.Parameters
 import chisel3.experimental.SourceInfo
+import org.chipsalliance.cde.config.Parameters
 
 /** A Handle with no explicitly defined binding functionality.
   *

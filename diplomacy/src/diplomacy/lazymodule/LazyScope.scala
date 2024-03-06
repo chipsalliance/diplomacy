@@ -2,6 +2,8 @@ package org.chipsalliance.diplomacy.lazymodule
 
 import org.chipsalliance.cde.config.Parameters
 
+import org.chipsalliance.diplomacy.ValName
+
 /** Allows dynamic creation of [[Module]] hierarchy and "shoving" logic into a [[LazyModule]]. */
 trait LazyScope {
   this: LazyModule =>
@@ -48,10 +50,10 @@ object LazyScope {
   def apply[T](
     body:             => T
   )(
-    implicit valName: sourcecode.Name,
+    implicit valName: ValName,
     p:                Parameters
   ): T = {
-    apply(valName.toString, "SimpleLazyModule", None)(body)(p)
+    apply(valName.value, "SimpleLazyModule", None)(body)(p)
   }
 
   /** Create a [[LazyScope]] with an explicitly defined instance name.

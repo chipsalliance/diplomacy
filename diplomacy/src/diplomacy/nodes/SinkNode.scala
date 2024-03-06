@@ -2,6 +2,8 @@ package org.chipsalliance.diplomacy.nodes
 
 import chisel3.{Data, IO}
 
+import org.chipsalliance.diplomacy.ValName
+
 /** A node which represents a node in the graph which has only inward edges, no outward edges.
   *
   * A [[SinkNode]] cannot appear cannot appear right of a `:=`, `:*=`, `:=*`, or `:*=*`
@@ -12,7 +14,7 @@ class SinkNode[D, U, EO, EI, B <: Data](
   imp:              NodeImp[D, U, EO, EI, B]
 )(pi:               Seq[U]
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends MixedNode(imp, imp) {
   override def description = "sink"
   protected[diplomacy] def resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int) = {
@@ -68,10 +70,10 @@ class SinkNode[D, U, EO, EI, B <: Data](
 
   def makeIOs(
   )(
-    implicit valName: sourcecode.Name
+    implicit valName: ValName
   ): HeterogeneousBag[B] = {
     val bundles = this.in.map(_._1)
-    val ios     = IO(new HeterogeneousBag(bundles.map(_.cloneType)))
+    val ios     = IO(new HeterogeneousBag(bundles))
     ios.suggestName(valName.value)
     bundles.zip(ios).foreach { case (bundle, io) => io <> bundle }
     ios

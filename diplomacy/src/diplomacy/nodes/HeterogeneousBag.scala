@@ -1,5 +1,3 @@
-// See LICENSE.SiFive for license details.
-
 package org.chipsalliance.diplomacy.nodes
 
 import chisel3._
@@ -13,7 +11,6 @@ final case class HeterogeneousBag[T <: Data](elts: Seq[T]) extends Record with c
   def length = elts.length
 
   override def className: String = super.className
-
   val elements = ListMap(elts.zipWithIndex.map { case (n, i) => (i.toString, chiselTypeClone(n)) }: _*)
   // IndexedSeq has its own hashCode/equals that we must not use
   override def hashCode: Int = super[Record].hashCode

@@ -1,11 +1,10 @@
 package org.chipsalliance.diplomacy.lazymodule
 
-import org.chipsalliance.cde.config.Parameters
-import chisel3.experimental.ChiselAnnotation
-import chisel3.experimental.SourceInfo
-import chisel3.{withClockAndReset, RawModule, Reset, _}
-import org.chipsalliance.diplomacy.nodes.Dangle
+import chisel3.{withClockAndReset, Module, RawModule, Reset, _}
+import chisel3.experimental.{ChiselAnnotation, CloneModuleAsRecord, SourceInfo}
 import firrtl.passes.InlineAnnotation
+import org.chipsalliance.cde.config.Parameters
+import org.chipsalliance.diplomacy.nodes.Dangle
 
 import scala.collection.immutable.SortedMap
 
@@ -22,7 +21,7 @@ sealed trait LazyModuleImpLike extends RawModule {
   val auto: AutoBundle
 
   /** The metadata that describes the [[HalfEdge]]s which generated [[auto]]. */
-  val dangles: Seq[Dangle]
+  protected[diplomacy] val dangles: Seq[Dangle]
 
   // [[wrapper.module]] had better not be accessed while LazyModules are still being built!
   require(
@@ -46,8 +45,31 @@ sealed trait LazyModuleImpLike extends RawModule {
     // 2. return [[Dangle]]s from each module.
     val childDangles = wrapper.children.reverse.flatMap { c =>
       implicit val sourceInfo: SourceInfo = c.info
-      val mod = Module(c.module)
-      mod.dangles
+      c.cloneProto.map { cp =>
+        // If the child is a clone, then recursively set cloneProto of its children as well
+        def assignCloneProtos(bases: Seq[LazyModule], clones: Seq[LazyModule]): Unit = {
+          require(bases.size == clones.size)
+          (bases.zip(clones)).map { case (l, r) =>
+            require(l.getClass == r.getClass, s"Cloned children class mismatch ${l.name} != ${r.name}")
+            l.cloneProto = Some(r)
+            assignCloneProtos(l.children, r.children)
+          }
+        }
+        assignCloneProtos(c.children, cp.children)
+        // Clone the child module as a record, and get its [[AutoBundle]]
+        val clone = CloneModuleAsRecord(cp.module).suggestName(c.suggestedName)
+        val clonedAuto = clone("auto").asInstanceOf[AutoBundle]
+        // Get the empty [[Dangle]]'s of the cloned child
+        val rawDangles = c.cloneDangles()
+        require(rawDangles.size == clonedAuto.elements.size)
+        // Assign the [[AutoBundle]] fields of the cloned record to the empty [[Dangle]]'s
+        val dangles    = (rawDangles.zip(clonedAuto.elements)).map { case (d, (_, io)) => d.copy(dataOpt = Some(io)) }
+        dangles
+      }.getOrElse {
+        // For non-clones, instantiate the child module
+        val mod = Module(c.module)
+        mod.dangles
+      }
     }
 
     // Ask each node in this [[LazyModule]] to call [[BaseNode.instantiate]].
@@ -60,15 +82,17 @@ sealed trait LazyModuleImpLike extends RawModule {
     // For each [[source]] set of [[Dangle]]s of size 2, ensure that these
     // can be connected as a source-sink pair (have opposite flipped value).
     // Make the connection and mark them as [[done]].
-    val done        = Set() ++ pairing.values.filter(_.size == 2).map { case Seq(a, b) =>
-      require(a.flipped != b.flipped)
-      // @todo <> in chisel3 makes directionless connection.
-      if (a.flipped) {
-        a.data <> b.data
-      } else {
-        b.data <> a.data
-      }
-      a.source
+    val done        = Set() ++ pairing.values.filter(_.size == 2).map {
+      case Seq(a, b) =>
+        require(a.flipped != b.flipped)
+        // @todo <> in chisel3 makes directionless connection.
+        if (a.flipped) {
+          a.data <> b.data
+        } else {
+          b.data <> a.data
+        }
+        a.source
+      case _         => None
     }
     // Find all [[Dangle]]s which are still not connected. These will end up as [[AutoBundle]] [[IO]] ports on the module.
     val forward     = allDangles.filter(d => !done(d.source))
@@ -81,7 +105,7 @@ sealed trait LazyModuleImpLike extends RawModule {
       } else {
         io <> d.data
       }
-      d.copy(data = io, name = wrapper.suggestedName + "_" + d.name)
+      d.copy(dataOpt = Some(io), name = wrapper.suggestedName + "_" + d.name)
     }
     // Push all [[LazyModule.inModuleBody]] to [[chisel3.internal.Builder]].
     wrapper.inModuleBody.reverse.foreach {
@@ -104,7 +128,7 @@ sealed trait LazyModuleImpLike extends RawModule {
   * @param wrapper
   *   the [[LazyModule]] from which the `.module` call is being made.
   */
-class LazyModuleImp(val wrapper: LazyModule) extends LazyModuleImpLike {
+class LazyModuleImp(val wrapper: LazyModule) extends Module with LazyModuleImpLike {
 
   /** Instantiate hardware of this `Module`. */
   val (auto, dangles) = instantiate()
@@ -128,7 +152,12 @@ class LazyRawModuleImp(val wrapper: LazyModule) extends RawModule with LazyModul
   // the default is that these are disabled
   childClock := false.B.asClock
   childReset := chisel3.DontCare
-  val (auto, dangles) = withClockAndReset(childClock, childReset) {
-    instantiate()
-  }
+
+  def provideImplicitClockToLazyChildren: Boolean = false
+  val (auto, dangles) =
+    if (provideImplicitClockToLazyChildren) {
+      withClockAndReset(childClock, childReset) { instantiate() }
+    } else {
+      instantiate()
+    }
 }

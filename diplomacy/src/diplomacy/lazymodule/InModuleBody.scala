@@ -1,5 +1,7 @@
 package org.chipsalliance.diplomacy.lazymodule
 
+import scala.language.reflectiveCalls
+
 trait ModuleValue[T] {
   def getWrappedValue: T
 }

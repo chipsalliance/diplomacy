@@ -1,16 +1,17 @@
 package org.chipsalliance.diplomacy.bundlebridge
 
-import org.chipsalliance.cde.config.Parameters
-import chisel3._
+import chisel3.{chiselTypeOf, ActualDirection, Data, Flipped, IO, Input}
 import chisel3.reflect.DataMirror
 import chisel3.reflect.DataMirror.internal.chiselTypeClone
+import org.chipsalliance.cde.config.Parameters
+
 import org.chipsalliance.diplomacy.ValName
-import org.chipsalliance.diplomacy.nodes._
+import org.chipsalliance.diplomacy.nodes.SourceNode
 
 case class BundleBridgeSource[T <: Data](
   genOpt:           Option[() => T] = None
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends SourceNode(new BundleBridgeImp[T])(Seq(BundleBridgeParams(genOpt))) {
   def bundle: T = out(0)._1
 
@@ -20,9 +21,12 @@ case class BundleBridgeSource[T <: Data](
 
   def makeIO(
   )(
-    implicit valName: sourcecode.Name
+    implicit valName: ValName
   ): T = {
-    val io: T = IO(if (inferInput) Input(chiselTypeOf(bundle)) else Flipped(chiselTypeClone(bundle)))
+    val io: T = IO(
+      if (inferInput) Input(chiselTypeOf(bundle))
+      else Flipped(chiselTypeClone(bundle))
+    )
     io.suggestName(valName.value)
     bundle <> io
     io
@@ -45,14 +49,14 @@ case class BundleBridgeSource[T <: Data](
 object BundleBridgeSource {
   def apply[T <: Data](
   )(
-    implicit valName: sourcecode.Name
+    implicit valName: ValName
   ): BundleBridgeSource[T] = {
     BundleBridgeSource(None)
   }
   def apply[T <: Data](
     gen:              () => T
   )(
-    implicit valName: sourcecode.Name
+    implicit valName: ValName
   ): BundleBridgeSource[T] = {
     BundleBridgeSource(Some(gen))
   }

@@ -11,3 +11,8 @@ class SimpleLazyModule(
     extends LazyModule {
   lazy val module = new LazyModuleImp(this)
 }
+class SimpleLazyRawModule(
+  implicit p: Parameters)
+    extends LazyModule {
+  lazy val module = new LazyRawModuleImp(this)
+}

@@ -1,12 +1,15 @@
 package org.chipsalliance.diplomacy.nodes
+
 import chisel3.Data
+
+import org.chipsalliance.diplomacy.ValName
 
 /** [[MixedAdapterNode]] is used to transform between different diplomacy protocols ([[NodeImp]]), without changing the
   * number of edges passing through it.
   *
   * For example, a [[MixedAdapterNode]] is needed for a TL to AXI bridge (interface).
   * {{{
-  *   case class TLToAXI4Node(stripBits: Int = 0)(implicit valName: sourcecode.Name) extends MixedAdapterNode(TLImp, AXI4Imp)
+  *   case class TLToAXI4Node(stripBits: Int = 0)(implicit valName: ValName) extends MixedAdapterNode(TLImp, AXI4Imp)
   * }}}
   *
   * @param dFn
@@ -20,7 +23,7 @@ class MixedAdapterNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
 )(dFn:              DI => DO,
   uFn:              UO => UI
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends MixedNode(inner, outer) {
   override def description                                 = "adapter"
   protected[diplomacy] override def flexibleArityDirection = true
@@ -100,5 +103,5 @@ class AdapterNode[D, U, EO, EI, B <: Data](
 )(dFn:              D => D,
   uFn:              U => U
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends MixedAdapterNode[D, U, EI, B, D, U, EO, B](imp, imp)(dFn, uFn)

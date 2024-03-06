@@ -1,8 +1,9 @@
 package org.chipsalliance.diplomacy.nodes
 
 import chisel3.Data
-import org.chipsalliance.cde.config.Parameters
 import chisel3.experimental.SourceInfo
+
+import org.chipsalliance.cde.config.Parameters
 
 /** [[InwardNodeImp]] defines the types that describe the inward side of the [[BaseNode]].
   *

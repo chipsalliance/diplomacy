@@ -2,6 +2,8 @@ package org.chipsalliance.diplomacy.nodes
 
 import chisel3.Data
 
+import org.chipsalliance.diplomacy.ValName
+
 /** [[MixedNexusNode]] is used when the number of nodes connecting from either side is unknown (e.g. a Crossbar which
   * also is a protocol adapter).
   *
@@ -27,7 +29,7 @@ class MixedNexusNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
   inputRequiresOutput: Boolean = true,
   outputRequiresInput: Boolean = true
 )(
-  implicit valName:    sourcecode.Name)
+  implicit valName:    ValName)
     extends MixedNode(inner, outer) {
   override def description = "nexus"
   protected[diplomacy] def resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int) = {
@@ -53,7 +55,8 @@ class MixedNexusNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
          |$resolveStarInfo
          |""".stripMargin
     )
-    if (iKnown == 0 && oKnown == 0) (0, 0) else (1, 1)
+    if (iKnown == 0 && oKnown == 0) (0, 0)
+    else (1, 1)
   }
   protected[diplomacy] def mapParamsD(n: Int, p: Seq[DI]):                                  Seq[DO]    = {
     if (n > 0) { val a = dFn(p); Seq.fill(n)(a) }
@@ -75,5 +78,5 @@ class NexusNode[D, U, EO, EI, B <: Data](
   inputRequiresOutput: Boolean = true,
   outputRequiresInput: Boolean = true
 )(
-  implicit valName:    sourcecode.Name)
+  implicit valName:    ValName)
     extends MixedNexusNode[D, U, EI, B, D, U, EO, B](imp, imp)(dFn, uFn, inputRequiresOutput, outputRequiresInput)

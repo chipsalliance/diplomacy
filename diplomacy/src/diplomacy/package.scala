@@ -1,10 +1,12 @@
 // See LICENSE.SiFive for license details.
 package org.chipsalliance
 
-import org.chipsalliance.cde.config.Parameters
 import chisel3.experimental.{SourceInfo, SourceLine}
+import org.chipsalliance.cde.config.Parameters
 import org.chipsalliance.diplomacy.lazymodule.ModuleValue
 import org.chipsalliance.diplomacy.nodes.{MonitorsEnabled, RenderFlipped}
+
+// TODO - remove after full deprecation of old ValName Macro api
 
 import scala.language.implicitConversions
 
@@ -162,32 +164,41 @@ import scala.language.implicitConversions
   *   - Ephemeral: a temporary placeholder used for connectivity operations
   */
 package object diplomacy {
-  def ValName(value: String) = sourcecode.Name(value)
+
+  type ValName = sourcecode.Name
+
+  // TODO - replace with type alias when name accessor is fully deprecated.
+  implicit class SourcecodeNameExt(private val x: sourcecode.Name) {
+    @deprecated("Name method has been removed in transition to sourcecode library.", "diplomacy 1.0.0")
+    def name:  String = x.value
+    def value: String = x.value
+  }
+
+  def ValName(value: String): ValName = sourcecode.Name(value)
+
   private[diplomacy] def sourceLine(sourceInfo: SourceInfo, prefix: String = " (", suffix: String = ")") =
     sourceInfo match {
       case SourceLine(filename, line, col) => s"$prefix$filename:$line:$col$suffix"
       case _                               => ""
     }
+
   def EnableMonitors[T](
     body:       Parameters => T
   )(
     implicit p: Parameters
-  ) = body(p.alterPartial { case MonitorsEnabled =>
-    true
-  })
+  ) = body(p.alterPartial { case MonitorsEnabled => true })
+
   def DisableMonitors[T](
     body:       Parameters => T
   )(
     implicit p: Parameters
-  ) = body(p.alterPartial { case MonitorsEnabled =>
-    false
-  })
+  ) = body(p.alterPartial { case MonitorsEnabled => false })
+
   def FlipRendering[T](
     body:       Parameters => T
   )(
     implicit p: Parameters
-  ) = body(p.alterPartial { case RenderFlipped =>
-    !p(RenderFlipped)
-  })
+  ) = body(p.alterPartial { case RenderFlipped => !p(RenderFlipped) })
+
   implicit def moduleValue[T](value: ModuleValue[T]): T = value.getWrappedValue
 }

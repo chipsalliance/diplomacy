@@ -1,9 +1,9 @@
 package org.chipsalliance.diplomacy.bundlebridge
 
-import org.chipsalliance.cde.config.Parameters
-import chisel3._
+import chisel3.{chiselTypeOf, ActualDirection, Data, Reg}
 import chisel3.reflect.DataMirror
-import org.chipsalliance.diplomacy.lazymodule.{LazyModule, LazyModuleImp}
+import org.chipsalliance.cde.config.Parameters
+import org.chipsalliance.diplomacy.lazymodule.{LazyModule, LazyRawModuleImp}
 
 class BundleBridgeNexus[T <: Data](
   inputFn:                      Seq[T] => T,
@@ -16,7 +16,8 @@ class BundleBridgeNexus[T <: Data](
     extends LazyModule {
   val node = BundleBridgeNexusNode[T](default, inputRequiresOutput)
 
-  lazy val module = new LazyModuleImp(this) {
+  lazy val module = new Impl
+  class Impl extends LazyRawModuleImp(this) {
     val defaultWireOpt = default.map(_())
     val inputs: Seq[T] = node.in.map(_._1)
     inputs.foreach { i =>
@@ -25,7 +26,6 @@ class BundleBridgeNexus[T <: Data](
         s"${node.context} requires all inputs have equivalent Chisel Data types, but got\n$i\nvs\n${inputs.head}"
       )
     }
-
     inputs.flatMap(getElements).foreach { elt =>
       DataMirror.directionOf(elt) match {
         case ActualDirection.Output      => ()

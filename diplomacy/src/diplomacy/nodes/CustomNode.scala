@@ -2,12 +2,14 @@ package org.chipsalliance.diplomacy.nodes
 
 import chisel3.Data
 
+import org.chipsalliance.diplomacy.ValName
+
 /** A [[MixedNode]] that may be extended with custom behavior. */
 abstract class MixedCustomNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
   inner:            InwardNodeImp[DI, UI, EI, BI],
   outer:            OutwardNodeImp[DO, UO, EO, BO]
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends MixedNode(inner, outer) {
   override def description = "custom"
   def resolveStar(iKnown: Int, oKnown: Int, iStars: Int, oStars: Int): (Int, Int)
@@ -22,5 +24,5 @@ abstract class MixedCustomNode[DI, UI, EI, BI <: Data, DO, UO, EO, BO <: Data](
 abstract class CustomNode[D, U, EO, EI, B <: Data](
   imp:              NodeImp[D, U, EO, EI, B]
 )(
-  implicit valName: sourcecode.Name)
+  implicit valName: ValName)
     extends MixedCustomNode(imp, imp)
