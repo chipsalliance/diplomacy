@@ -10,7 +10,7 @@ import com.goyeau.mill.scalafix.ScalafixModule
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.11:0.4.0`
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 
-import $file.dependencies.cde.common
+import $file.dependencies.cde.build
 import $file.dependencies.chisel.build
 import $file.common
 
@@ -26,19 +26,19 @@ object v {
 
 object cde extends CDE
 
-trait CDE extends millbuild.dependencies.cde.common.CDEModule with DiplomacyPublishModule with ScalaModule {
+trait CDE extends dependencies.cde.common.CDEModule with DiplomacyPublishModule with ScalaModule {
   def scalaVersion: T[String] = T(v.scala)
 
-  override def millSourcePath = os.pwd / "dependencies" / "cde" / "cde"
+  override def millSourcePath = dependencies.cde.build.cde.millSourcePath
 }
 
 // Build form source only for dev
 object chisel extends Chisel
 
 trait Chisel
-  extends millbuild.dependencies.chisel.build.Chisel {
+  extends dependencies.chisel.build.Chisel {
   def crossValue = v.scala
-  override def millSourcePath = os.pwd / "dependencies" / "chisel"
+  override def millSourcePath = dependencies.chisel.build.chisel.millSourcePath
   def scalaVersion = T(v.scala)
 }
 
@@ -46,7 +46,7 @@ trait Chisel
 object diplomacy extends Cross[Diplomacy](v.chiselCrossVersions.keys.toSeq)
 
 trait Diplomacy
-    extends millbuild.common.DiplomacyModule
+    extends common.DiplomacyModule
     with DiplomacyPublishModule
     with ScalafmtModule
     with ScalafixModule
@@ -60,7 +60,8 @@ trait Diplomacy
   def chiselPluginJar = T(Option.when(crossValue == "source")(chisel.pluginModule.jar()))
   def chiselIvy = Option.when(crossValue != "source")(v.chiselCrossVersions(crossValue)._1)
   def chiselPluginIvy = Option.when(crossValue != "source")(v.chiselCrossVersions(crossValue)._2)
-  def cdeModule = cde
+  def cdeModule: Option[ScalaModule] = Some(cde)
+  def cdeIvy = None
   def sourcecodeIvy = v.sourcecode
 }
 
