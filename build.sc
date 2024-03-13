@@ -26,8 +26,8 @@ object v {
 
 object cde extends CDE
 
-trait CDE extends dependencies.cde.common.CDEModule with DiplomacyPublishModule with ScalaModule {
-  def scalaVersion: T[String] = T(v.scala)
+trait CDE extends dependencies.cde.build.CDE {
+  override def scalaVersion: T[String] = T(v.scala)
 
   override def millSourcePath = dependencies.cde.build.cde.millSourcePath
 }
