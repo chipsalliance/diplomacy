@@ -40,6 +40,9 @@ class BundleBridgeNexus[T <: Data](
         outputFn(broadcast, node.out.size)
       } else { Nil }
 
+    val typeName = outputs.headOption.map(_.typeName).getOrElse("NoOutput")
+    override def desiredName = s"BundleBridgeNexus_$typeName"
+
     node.out.map(_._1).foreach { o =>
       require(
         DataMirror.checkTypeEquivalence(o, outputs.head),
