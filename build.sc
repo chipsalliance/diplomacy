@@ -15,9 +15,9 @@ import $file.dependencies.chisel.build
 import $file.common
 
 object v {
-  val scala = "2.13.12"
+  val scala = "2.13.16"
   val chiselCrossVersions = Map(
-    "6.1.0" -> (ivy"org.chipsalliance::chisel:6.1.0", ivy"org.chipsalliance:::chisel-plugin:6.1.0"),
+    "6.7.0" -> (ivy"org.chipsalliance::chisel:6.7.0", ivy"org.chipsalliance:::chisel-plugin:6.7.0"),
     // build from project from source
     "source" -> (ivy"org.chipsalliance::chisel:99", ivy"org.chipsalliance:::chisel-plugin:99"),
   )
