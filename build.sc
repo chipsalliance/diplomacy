@@ -32,7 +32,7 @@ trait CDE extends millbuild.dependencies.cde.common.CDEModule with DiplomacyPubl
   override def millSourcePath = os.pwd / "dependencies" / "cde" / "cde"
 }
 
-// Build form source only for dev
+// Build from source only for dev
 object chisel extends Chisel
 
 trait Chisel
