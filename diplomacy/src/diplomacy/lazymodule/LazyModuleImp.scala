@@ -1,8 +1,7 @@
 package org.chipsalliance.diplomacy.lazymodule
 
 import chisel3.{withClockAndReset, Module, RawModule, Reset, _}
-import chisel3.experimental.{ChiselAnnotation, CloneModuleAsRecord, SourceInfo}
-import firrtl.passes.InlineAnnotation
+import chisel3.experimental.{CloneModuleAsRecord, SourceInfo}
 import org.chipsalliance.cde.config.Parameters
 import org.chipsalliance.diplomacy.nodes.Dangle
 
@@ -120,9 +119,7 @@ sealed trait LazyModuleImpLike extends RawModule {
     }
 
     if (wrapper.shouldBeInlined) {
-      chisel3.experimental.annotate(new ChiselAnnotation {
-        def toFirrtl = InlineAnnotation(toNamed)
-      })
+      chisel3.experimental.annotate(this)(Seq(firrtl.passes.InlineAnnotation(toNamed)))
     }
 
     // Return [[IO]] and [[Dangle]] of this [[LazyModuleImp]].
