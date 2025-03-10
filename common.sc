@@ -24,13 +24,17 @@ trait HasChisel extends ScalaModule {
 
 trait DiplomacyModule extends HasChisel {
 
-  def cdeModule: ScalaModule
+  // cde from module till published to sonatype
+  def cdeModule: Option[ScalaModule]
 
-  override def moduleDeps = super.moduleDeps ++ Some(cdeModule)
+  // prep for cde use from ivy
+  def cdeIvy: Option[Dep]
+
+  override def moduleDeps = super.moduleDeps ++ cdeModule
 
   def sourcecodeIvy: Dep
 
-  override def ivyDeps = T(super.ivyDeps() ++ Some(sourcecodeIvy))
+  override def ivyDeps = T(super.ivyDeps() ++ Some(sourcecodeIvy) ++ cdeIvy)
 
   override def scalacOptions = T(
     super.scalacOptions() ++ Seq("-Wunused")
