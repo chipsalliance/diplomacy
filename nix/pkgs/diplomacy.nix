@@ -20,8 +20,8 @@ let
     src = (with lib.fileset; toSource {
       root = ./../..;
       fileset = unions [
-        ./../../build.sc
-        ./../../common.sc
+        ./../../build.mill
+        ./../../common.mill
         ./../../diplomacy
       ];
     }).outPath;
@@ -31,8 +31,8 @@ let
       src = (with lib.fileset; toSource {
         root = ./../..;
         fileset = unions [
-          ./../../build.sc
-          ./../../common.sc
+          ./../../build.mill
+          ./../../common.mill
         ];
       }).outPath;
       millDepsHash = "sha256-5CagEixOPT5AlGInTqCBhts2hko1FBqKFkMRYYpma2o=";

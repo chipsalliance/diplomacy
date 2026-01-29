@@ -1,0 +1,83 @@
+//| mill-version: 1.1.0
+//| mill-allow-nested-build-mill: true
+//| mvnDeps:
+//| - com.goyeau::mill-scalafix::0.6.0
+//| - com.lihaoyi::mill-contrib-jmh:$MILL_VERSION
+//| - com.47deg::github4s:0.33.3
+//| - com.lumidion::sonatype-central-client-requests:0.6.0
+//| - com.github.lolgab::mill-mima::0.2.0
+package build
+
+import mill._
+import mill.scalalib._
+import mill.scalalib.publish._
+
+import scalafmt._
+
+import com.goyeau.mill.scalafix.ScalafixModule
+import scala.util.Try
+
+object v extends Module {
+  val scala = "2.13.16"
+  val scalaCross = "2.13"  // Major version for Chisel cross-compilation
+  val chiselCrossVersions = Map(
+    "6.7.0" -> (mvn"org.chipsalliance::chisel:6.7.0", mvn"org.chipsalliance:::chisel-plugin:6.7.0"),
+    // build from project from source
+    "source" -> (mvn"org.chipsalliance::chisel:99", mvn"org.chipsalliance:::chisel-plugin:99"),
+  )
+  val sourcecode = mvn"com.lihaoyi::sourcecode:0.3.1"
+}
+
+
+object cde extends build.dependencies.cde.CDE with DiplomacyPublishModule {
+  override def scalaVersion = v.scala
+  override def moduleDir = super.moduleDir / os.up / "dependencies" / "cde" / "cde"
+}
+
+object chisel extends build.dependencies.chisel.Chisel {
+  def crossValue = v.scalaCross
+  override def scalaVersion = v.scala
+  override def moduleDir = super.moduleDir / os.up / "dependencies" / "chisel"
+}
+
+
+object diplomacy extends Cross[Diplomacy](v.chiselCrossVersions.keys.toSeq)
+
+trait Diplomacy
+    extends build.DiplomacyModule
+    with DiplomacyPublishModule
+    with ScalafmtModule
+    with ScalafixModule
+    with Cross.Module[String] {
+
+  def scalaVersion: T[String] = v.scala
+
+  def millSourcePath = os.pwd / "diplomacy"
+
+  def chiselModule = Option.when(crossValue == "source")(chisel)
+  def chiselPluginJar = Option.when(crossValue == "source")(chisel.pluginModule.jar())
+  def chiselIvy = Option.when(crossValue != "source")(v.chiselCrossVersions(crossValue)._1)
+  def chiselPluginIvy = Option.when(crossValue != "source")(v.chiselCrossVersions(crossValue)._2)
+  def cdeModule = cde
+  def sourcecodeIvy = v.sourcecode
+}
+
+trait DiplomacyPublishModule extends PublishModule {
+  private def vcsVersion =
+    Try(os.proc("git", "describe", "--tags", "--always", "--dirty").call().out.text().trim)
+      .getOrElse("0.0.0")
+
+  def publishVersion = vcsVersion
+  def pomSettings = PomSettings(
+    description = artifactName(),
+    organization = "org.chipsalliance",
+    url = "https://www.github.com/chipsalliance/diplomacy",
+    licenses = Seq(License.`Apache-2.0`),
+    versionControl = VersionControl.github("chipsalliance", "diplomacy"),
+    developers = Seq(
+      Developer("terpstra", "Wesley W. Terpstra", "https://github.com/terpstra"),
+      Developer("hcook", "Henry Cook", "https://github.com/hcook"),
+      Developer("sequencer", "Jiuyang Liu", "https://github.com/sequencer")
+    )
+  )
+}
